@@ -256,10 +256,23 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
         throw new Error(data.error || `Server returned error (${res.status})`);
       }
 
+      let displayContent = data.response || data.error || "No response content received.";
+      try {
+        const jsonMatch = typeof displayContent === "string" ? displayContent.match(/\{[\s\S]*\}/) : null;
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed && typeof parsed.butler_report === "string" && parsed.butler_report.trim() !== "") {
+            displayContent = parsed.butler_report.trim();
+          }
+        }
+      } catch {
+        // Retain original string if non-JSON
+      }
+
       const assistantMessage: ChatMessage = {
         id: `msg_asst_${Date.now()}`,
         role: "assistant",
-        content: data.response || data.error || "No response content received.",
+        content: displayContent,
         status: data.status,
         security: data.security,
         provider: data.provider,
