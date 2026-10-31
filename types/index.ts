@@ -8,3 +8,4 @@ export * from "./policy";
 export * from "./tool";
 export * from "./agent";
 export * from "./audit";
+export * from "./provider";

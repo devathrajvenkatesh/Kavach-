@@ -2,7 +2,7 @@
 
 ## 1. Architectural Purpose
 
-**Possessed Butler** is a resilient agentic system capable of processing untrusted multi-modal inputs (emails, webpages, documents, and external API responses) while executing high-consequence user tasks without falling victim to prompt injection or control-flow hijacking.
+**Possessed Butler** is a resilient agentic system capable of processing untrusted multi-modal inputs (emails, webpages, documents, and files) while executing high-consequence user tasks without falling victim to prompt injection or control-flow hijacking.
 
 ### The Foundational Security Invariant
 > **"External content can provide DATA, but external content must NEVER gain AUTHORITY."**
@@ -11,22 +11,22 @@
 
 ## 2. Status Matrix: Implemented vs. Planned
 
-| Subsystem | Mission 1 Status | Planned Future State |
+| Subsystem | Status | Implementation Details |
 | :--- | :--- | :--- |
 | **Workspace & App Shell** | **Implemented** | Next.js App Router shell with interactive conceptual navigation. |
 | **Architectural Interfaces** | **Implemented** | Strict TypeScript definitions across `types/` for all major entities. |
 | **Trust Model Specification** | **Implemented** | Constants, orderings, and tier assignments defined in `lib/config/`. |
-| **Claude Reasoning Engine** | *Planned* | Orchestrator module in `lib/agent/` utilizing Anthropic Claude API. |
-| **Tool Gateway & Registry** | *Planned* | Sandboxed tool invocations (`lib/tools/`) for email, web browsing, PDF parsing, and local storage. |
-| **Threat Analyzer** | *Planned* | Pre-execution heuristic and semantic injection detector (`lib/threat/`). |
-| **Policy Engine** | *Planned* | Invariant verification and authorization checker (`lib/policy/`). |
-| **Audit Logger** | *Planned* | Structured, tamper-evident telemetry and trace logging (`lib/audit/`). |
-| **Attack Lab & Datasets** | *Planned* | Simulation harness and dataset corpora (`datasets/attacks/`). |
-| **Evaluation Engine** | *Planned* | Benchmark runner measuring defense rate vs. task utility (`lib/evaluation/`). |
+| **Model-Independent LLM Abstraction** | **Implemented (M2)** | Clean `LLMProvider` contract supporting `MockLLMProvider`, `GeminiLLMProvider`, with clean stubs for Anthropic & OpenAI. Configurable via `LLM_PROVIDER`. Zero hardcoded credentials or models. |
+| **Agent Orchestrator** | **Implemented (M2)** | Controlled execution loop in `lib/agent/orchestrator.ts`. Intercepts all tool calls; LLM never directly executes tools. |
+| **Security Gateway** | **Implemented (M2)** | Action validator, threat analyzer, taint tracker, and policy engine in `lib/security/`. Strictly evaluates `APPROVE`, `BLOCK`, `REQUIRE_CONFIRMATION`. |
+| **Tool Gateway & Registry** | **Implemented (M2)** | The sole execution boundary in `lib/tools/`. Validates `PolicyDecision === "APPROVE"` before dispatch. Parameter validation with Zod. |
+| **Deterministic Sandbox Tools** | **Implemented (M2)** | Local fixtures in `lib/tools/sandbox/` for `read_email`, `send_email`, `fetch_webpage`, `read_pdf`, `read_file`, `edit_file`. External content tagged with taint flags. |
+| **Attack Lab & Adversarial Datasets** | *Planned* | Simulation harness and dataset corpora (`datasets/attacks/`). |
+| **Evaluation Engine** | *Planned* | Quantitative robustness benchmarks and regression suite (`lib/evaluation/`). |
 
 ---
 
-## 3. High-Level Component Architecture
+## 3. The Controlled Execution Pipeline
 
 ```
                     ┌───────────────────────────────┐
@@ -35,83 +35,61 @@
                                     │ (USER_INTENT)
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        POSSESSED BUTLER SHELL                          │
+│                        POSSESSED BUTLER CORE                           │
 │                                                                        │
 │   ┌────────────────────────────────────────────────────────────────┐   │
-│   │                 Trust Boundary & Gateway                       │   │
-│   └───────────────┬────────────────────────────────┬───────────────┘   │
-│                   │                                │                   │
-│                   ▼                                ▼                   │
-│   ┌──────────────────────────────┐   ┌─────────────────────────────┐   │
-│   │      Threat Analyzer         │   │       Policy Engine         │   │
-│   │  (Injection / Taint Scanner) │   │ (Strict Invariant Enforcer) │   │
-│   └───────────────┬──────────────┘   └─────────────┬───────────────┘   │
-│                   │                                │                   │
-│                   └───────────────┬────────────────┘                   │
+│   │ 1. LLM Provider (Mock / Gemini / Anthropic / OpenAI)           │   │
+│   │    • Isolated context frames & prompt boundary defense         │   │
+│   │    • Emits structured ToolRequest (never direct execution)     │   │
+│   └───────────────────────────────┬────────────────────────────────┘   │
+│                                   │ ToolRequest                        │
 │                                   ▼                                    │
 │   ┌────────────────────────────────────────────────────────────────┐   │
-│   │                 Claude Orchestrator Runtime                    │   │
-│   │            (Isolated Prompt & Reasoning Envelope)              │   │
-│   └───────────────┬────────────────────────────────▲───────────────┘   │
-│                   │ (ToolRequest)                  │ (ToolResult)      │
-│                   ▼                                │                   │
-│   ┌────────────────────────────────────────────────┴───────────────┐   │
-│   │                 Action & Tool Gateway                          │   │
-│   │       • Sanitizer & Taint Tagger                               │   │
-│   │       • Human-in-the-Loop Confirmation Gate                    │   │
-│   └───────────────┬────────────────────────────────────────────────┘   │
-│                   │                                                    │
-└───────────────────┼────────────────────────────────────────────────────┘
-                    │ Execution
-                    ▼
+│   │ 2. Security Gateway                                            │   │
+│   │    • Action Validator (checks alignment with User Intent)      │   │
+│   │    • Threat Analyzer (scans for injection & exfiltration)      │   │
+│   │    • Policy Engine (evaluates deterministic rules)             │   │
+│   │    • Produces explicit PolicyDecision:                         │   │
+│   │      [ APPROVE | BLOCK | REQUIRE_CONFIRMATION ]                │   │
+│   └───────────────────────────────┬────────────────────────────────┘   │
+│                                   │ ToolRequest + PolicyDecision       │
+│                                   ▼                                    │
+│   ┌────────────────────────────────────────────────────────────────┐   │
+│   │ 3. Tool Gateway (Sole Execution Boundary)                      │   │
+│   │    • Refuses execution if decision !== "APPROVE"               │   │
+│   │    • Pauses on REQUIRE_CONFIRMATION                            │   │
+│   │    • Schema validation via Zod                                 │   │
+│   │    • Tags outputs as EXTERNAL_CONTENT (Zero Authority)         │   │
+│   └───────────────────────────────┬────────────────────────────────┘   │
+│                                   │ Execution Authorized               │
+└───────────────────────────────────┼────────────────────────────────────┘
+                                    │
+                                    ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                         EXTERNAL WORLD & TOOLS                         │
+│                DETERMINISTIC LOCAL SANDBOX FIXTURES                    │
 │                                                                        │
-│     [ Email Tool ]     [ Web Scraper ]     [ File / PDF Parser ]       │
-│                                                                        │
-│                    (EXTERNAL_CONTENT: Untrusted Data)                  │
+│   [ read_email ]    [ send_email ]    [ fetch_webpage ]                │
+│   [ read_pdf ]      [ read_file ]     [ edit_file ]                    │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 4. Extension Points & Subsystem Details
+## 4. Policy Decision Outcomes
 
-### 4.1 Orchestrator (`lib/agent/`) — *Planned*
-- **Role**: Coordinates the reasoning cycle with Claude through the Anthropic API.
-- **Security Boundary**: Wraps system instructions and user instructions in immutable system frames. External data injected as tool outputs is clearly demarcated within data-only containers.
-- **Contract**: `AgentRequest` -> `AgentResponse` (defined in `types/agent.ts`).
+Policy evaluations yield strictly one of three outcomes:
+1. **`APPROVE`**: The request is a safe read-only operation directly matching the user's intent with clean, untainted parameters. The Tool Gateway proceeds to execute.
+2. **`BLOCK`**: The request attempts unauthorized access (e.g. reading `.env`), exhibits prompt injection overrides, or diverges from user intent (goal hijacking). Execution is denied immediately.
+3. **`REQUIRE_CONFIRMATION`**: The request involves state mutation or consequential external impact (`isConsequential: true`, e.g. `send_email`, `edit_file`). Execution halts pending explicit human confirmation.
 
-### 4.2 Tool Gateway (`lib/tools/`) — *Planned*
-- **Role**: Mediates all tool calls initiated by the agent.
-- **Risk Tiering**: Tools are categorized by consequence (`READ_ONLY`, `LOW_RISK`, `HIGH_CONSEQUENCE`, `RESTRICTED`).
-- **Sanitization**: All outputs from external fetch tools are marked as `EXTERNAL_CONTENT` and tagged with taint markers before being fed back to the orchestrator.
-- **Contract**: `ToolRequest` -> `ToolResult` (defined in `types/tool.ts`).
-
-### 4.3 Threat Analyzer (`lib/threat/`) — *Planned*
-- **Role**: Analyzes untrusted text chunks prior to model consumption.
-- **Detection Scope**: Indirect injection markers, system override directives (`"ignore previous instructions"`), jailbreak patterns, and honeytoken/canary probes.
-- **Contract**: Produces `ThreatAssessment` (defined in `types/threat.ts`).
-
-### 4.4 Policy Engine (`lib/policy/`) — *Planned*
-- **Role**: Evaluates intended actions against deterministic rules before tool execution.
-- **Decisions**: `ALLOW`, `BLOCK`, `QUARANTINE`, or `REQUIRE_HUMAN_APPROVAL`.
-- **Contract**: Produces `PolicyDecision` (defined in `types/policy.ts`).
-
-### 4.5 Audit Logger (`lib/audit/`) — *Planned*
-- **Role**: Emits structured, machine-readable security logs for forensics.
-- **Contract**: Emits `AuditEvent` (defined in `types/audit.ts`).
-
-### 4.6 Evaluation & Attack Lab (`lib/evaluation/`, `datasets/`) — *Planned*
-- **Role**: Continuous regression harness to verify defense efficacy against known injection attacks while retaining benign task utility.
+Zero quarantine states or ambiguous outcomes exist.
 
 ---
 
-## 5. Security Invariant Enforcement Mechanism
+## 5. Security Invariant Enforcement
 
 To enforce `"External content can provide DATA, but external content must NEVER gain AUTHORITY"`:
-
-1. **Tagging & Taint Tracking**: Any string originating from an external source (email body, HTTP payload, document stream) carries the `EXTERNAL_CONTENT` trust level (`Tier 1`).
-2. **Grammar & Envelope Isolation**: The Claude reasoning prompt is structured such that untrusted data blocks are enclosed in explicit data boundaries (e.g. `<external_untrusted_data source="..." id="...">`).
-3. **Tool Invocations Cannot Be Dictated by Data**: If a tool call parameter is derived from untrusted content without explicit user confirmation, the Policy Engine rejects or gates the request.
-4. **Human In The Loop (HITL)**: Irreversible or consequential actions (sending external emails, overwriting local files, transmitting credentials) require explicit confirmation regardless of model confidence.
+1. **Data-Only Demarcation**: All content returned by external tools (`read_email`, `fetch_webpage`, `read_pdf`) is enclosed in `<untrusted_external_data>` tags in the prompt builder.
+2. **Taint Tracking**: Content originating from external tools is flagged with taint tags (e.g. `taint:email:email-002`).
+3. **Goal Hijacking Prevention**: If external data contains injection instructions instructing the agent to call an unauthorized tool (e.g. forwarding credentials via `send_email`), the Security Gateway's Action Validator blocks the call because it was not initiated by the user intent.
+4. **Tool Isolation**: The LLM provider has zero direct code references to tool execution functions. All execution flows strictly through `ToolGateway.executeTool()`.

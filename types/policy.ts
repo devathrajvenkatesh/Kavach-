@@ -1,30 +1,29 @@
 /**
  * Possessed Butler - Policy Engine & Decision Types
+ *
+ * Strict policy outcomes: APPROVE | BLOCK | REQUIRE_CONFIRMATION
+ * (Zero quarantine states)
  */
 
 import { TrustLevel } from "./security";
 
-export type PolicyAction =
-  | "ALLOW"
-  | "BLOCK"
-  | "QUARANTINE"
-  | "REQUIRE_HUMAN_APPROVAL"
-  | "SANITIZE";
+export type PolicyDecisionOutcome = "APPROVE" | "BLOCK" | "REQUIRE_CONFIRMATION";
 
 export interface PolicyRuleMatch {
   ruleId: string;
   ruleName: string;
   description: string;
-  action: PolicyAction;
+  action: PolicyDecisionOutcome;
   severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 }
 
 export interface PolicyDecision {
   id: string;
-  action: PolicyAction;
+  requestId: string;
+  decision: PolicyDecisionOutcome;
   reason: string;
   matchedRules: PolicyRuleMatch[];
   enforcedTrustLevel: TrustLevel;
-  requiresIntervention: boolean;
+  requiresHumanApproval: boolean;
   evaluatedAt: string;
 }

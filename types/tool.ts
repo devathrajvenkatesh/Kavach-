@@ -1,18 +1,32 @@
 /**
- * Possessed Butler - Tool Gateway & Execution Types
+ * Possessed Butler - Tool Gateway & Execution Types (Pure TypeScript Contracts)
  */
 
 import { TrustContext } from "./security";
 
 export type ToolRiskTier = "READ_ONLY" | "LOW_RISK" | "HIGH_CONSEQUENCE" | "RESTRICTED";
 
+export interface ToolParameterDescriptor {
+  type: "string" | "number" | "boolean" | "object" | "array";
+  description: string;
+  required?: boolean;
+}
+
+export interface ToolMetadata {
+  name: string;
+  description: string;
+  riskTier: ToolRiskTier;
+  isConsequential: boolean;
+  requiresConfirmation: boolean;
+  parameters: Record<string, ToolParameterDescriptor>;
+}
+
 export interface ToolRequest {
   id: string;
+  sessionId: string;
   toolName: string;
   parameters: Record<string, unknown>;
   trustContext: TrustContext;
-  requestedBySessionId: string;
-  riskTier: ToolRiskTier;
   requestedAt: string;
 }
 
@@ -20,7 +34,6 @@ export type ToolExecutionStatus =
   | "SUCCESS"
   | "FAILED"
   | "BLOCKED_BY_POLICY"
-  | "QUARANTINED"
   | "AWAITING_APPROVAL";
 
 export interface ToolResult {
@@ -29,7 +42,6 @@ export interface ToolResult {
   status: ToolExecutionStatus;
   data?: unknown;
   rawOutput?: string;
-  sanitizedOutput?: string;
   error?: string;
   isExternalContent: boolean;
   taintApplied: string[];
