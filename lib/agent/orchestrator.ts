@@ -22,6 +22,17 @@ import { defaultToolGateway, ToolGateway } from "@/lib/tools/gateway";
 import { defaultPromptBuilder, PromptBuilder } from "./prompt-builder";
 import { createLLMProvider } from "./provider/factory";
 import { AuditLogger, defaultAuditLogger } from "@/lib/audit/logger";
+import { parseKavachModelResponse } from "@/lib/llm/prompts/kavach-system";
+
+function mapThreatLevelToStructured(
+  level?: string
+): "BENIGN" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL" {
+  if (!level || level === "NONE") return "BENIGN";
+  if (level === "LOW" || level === "MEDIUM" || level === "HIGH" || level === "CRITICAL") {
+    return level;
+  }
+  return "HIGH";
+}
 
 export interface OrchestratorOptions {
   provider?: LLMProvider;
@@ -269,6 +280,17 @@ export class AgentOrchestrator {
           // Terminate the compromised loop and alert the user
           responseStatus = "BLOCKED";
           finalContent = `[SECURITY BLOCKED] The requested action "${toolRequest.toolName}" was denied by security policy. Reason: ${decision.reason}`;
+
+          const structured = parseKavachModelResponse(finalContent);
+          structured.status = "BLOCKED";
+          structured.attack_detected = true;
+          const mappedLevel = mapThreatLevelToStructured(lastThreatAssessment?.overallThreatLevel);
+          structured.threat_level = mappedLevel === "BENIGN" ? "CRITICAL" : mappedLevel;
+          structured.threat_findings =
+            lastThreatAssessment?.signals.map((s) => s.indicator) || ["SECURITY_POLICY_VIOLATION"];
+          structured.tool_actions = toolExecutions.map((t) => t.toolName);
+          structured.butler_report = finalContent;
+
           return {
             id: responseId,
             requestId: request.id,
@@ -280,6 +302,7 @@ export class AgentOrchestrator {
             toolExecutions,
             threatAssessment: lastThreatAssessment,
             lastPolicyDecision,
+            structuredOutput: structured,
             providerInfo: {
               providerName: this.provider.providerName,
               modelIdentifier: this.provider.modelIdentifier,
@@ -332,6 +355,12 @@ export class AgentOrchestrator {
 
           responseStatus = "REQUIRES_CONFIRMATION";
           finalContent = `[CONFIRMATION REQUIRED] The agent wants to execute "${toolRequest.toolName}" with arguments: ${JSON.stringify(toolRequest.parameters)}. Consequential action requires explicit human confirmation.`;
+
+          const structured = parseKavachModelResponse(finalContent);
+          structured.status = "REQUIRES_CONFIRMATION";
+          structured.tool_actions = toolExecutions.map((t) => t.toolName);
+          structured.butler_report = finalContent;
+
           return {
             id: responseId,
             requestId: request.id,
@@ -343,6 +372,7 @@ export class AgentOrchestrator {
             toolExecutions,
             threatAssessment: lastThreatAssessment,
             lastPolicyDecision,
+            structuredOutput: structured,
             providerInfo: {
               providerName: this.provider.providerName,
               modelIdentifier: this.provider.modelIdentifier,
@@ -416,6 +446,16 @@ export class AgentOrchestrator {
       }
     }
 
+    const structured = parseKavachModelResponse(finalContent);
+    structured.status = "COMPLETED";
+    if (lastThreatAssessment?.isThreatDetected) {
+      structured.attack_detected = true;
+      structured.threat_level = mapThreatLevelToStructured(lastThreatAssessment.overallThreatLevel);
+      structured.threat_findings = lastThreatAssessment.signals.map((s) => s.indicator);
+    }
+    structured.tool_actions = toolExecutions.map((t) => t.toolName);
+    structured.butler_report = finalContent;
+
     return {
       id: responseId,
       requestId: request.id,
@@ -427,6 +467,7 @@ export class AgentOrchestrator {
       toolExecutions,
       threatAssessment: lastThreatAssessment,
       lastPolicyDecision,
+      structuredOutput: structured,
       providerInfo: {
         providerName: this.provider.providerName,
         modelIdentifier: this.provider.modelIdentifier,
@@ -455,6 +496,14 @@ export class AgentOrchestrator {
       content: `[SECURITY FAIL-CLOSED] An internal processing exception occurred. Operation halted to prevent privilege escalation: ${errorMsg}`,
       steps,
       toolExecutions,
+      structuredOutput: {
+        status: "BLOCKED",
+        attack_detected: true,
+        threat_level: "CRITICAL",
+        threat_findings: ["ORCHESTRATOR_EXCEPTION"],
+        tool_actions: [],
+        butler_report: `[SECURITY FAIL-CLOSED] An internal processing exception occurred: ${errorMsg}`,
+      },
       providerInfo: {
         providerName: this.provider.providerName,
         modelIdentifier: this.provider.modelIdentifier,

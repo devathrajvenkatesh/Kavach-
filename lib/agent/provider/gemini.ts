@@ -1,51 +1,40 @@
 /**
- * Kavach - Gemini LLM Provider
+ * Kavach — Production Gemini LLM Provider
  *
- * Primary real runtime provider utilizing the Google Generative Language API.
- * Reads API credentials and model configuration strictly from environment variables.
- * NO hardcoded API keys or model identifiers.
+ * Implements the model-independent LLMProvider contract using Google's official
+ * @google/genai SDK with the Gemini Interactions API as the primary production path,
+ * and direct generateContent as a compatibility fallback.
+ *
+ * ARCHITECTURAL INVARIANT:
+ * The Gemini provider is NOT a security authority. It receives instructions,
+ * returns function call requests or text, but NEVER authorizes or executes tools.
  */
 
-import { LLMMessage, LLMResponse, LLMProvider, ToolCallRequest } from "@/types";
-import { ToolMetadata } from "@/types";
+import { GoogleGenAI } from "@google/genai";
+import {
+  LLMMessage,
+  LLMResponse,
+  LLMProvider,
+  ToolCallRequest,
+  ToolMetadata,
+} from "@/types";
 import { ConfigurationError } from "./types";
-
-interface GeminiFunctionDeclaration {
-  name: string;
-  description: string;
-  parameters: {
-    type: "OBJECT";
-    properties: Record<string, { type: string; description: string }>;
-    required?: string[];
-  };
-}
-
-interface GeminiPart {
-  text?: string;
-  functionCall?: {
-    name: string;
-    args: Record<string, unknown>;
-  };
-  functionResponse?: {
-    name: string;
-    response: { output: unknown };
-  };
-}
-
-interface GeminiContent {
-  role: "user" | "model";
-  parts: GeminiPart[];
-}
+import { KAVACH_MASTER_SYSTEM_INSTRUCTIONS } from "@/lib/llm/prompts/kavach-system";
 
 export class GeminiLLMProvider implements LLMProvider {
   readonly providerName = "gemini";
   readonly modelIdentifier: string;
   private readonly apiKey: string;
-  private readonly baseUrl: string;
+  private readonly client: GoogleGenAI;
+  private lastInteractionId?: string;
 
-  constructor(config?: { apiKey?: string; modelIdentifier?: string; baseUrl?: string }) {
-    const apiKey = config?.apiKey || process.env.GEMINI_API_KEY;
-    const model = config?.modelIdentifier || process.env.GEMINI_MODEL;
+  constructor(config?: { apiKey?: string; modelIdentifier?: string }) {
+    const apiKey =
+      config?.apiKey !== undefined ? config.apiKey : process.env.GEMINI_API_KEY;
+    const model =
+      config?.modelIdentifier !== undefined
+        ? config.modelIdentifier
+        : process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
     if (!apiKey || apiKey.trim() === "") {
       throw new ConfigurationError(
@@ -61,21 +50,162 @@ export class GeminiLLMProvider implements LLMProvider {
 
     this.apiKey = apiKey.trim();
     this.modelIdentifier = model.trim();
-    this.baseUrl = config?.baseUrl || "https://generativelanguage.googleapis.com/v1beta";
+    this.client = new GoogleGenAI({ apiKey: this.apiKey });
   }
 
+  /**
+   * Resets the active interaction session state
+   */
+  reset(): void {
+    this.lastInteractionId = undefined;
+  }
+
+  /**
+   * Generates model completion, returning either tool call requests or final response.
+   * Primary path: Gemini Interactions API.
+   * Fallback path: Gemini generateContent API via @google/genai.
+   */
   async generateCompletion(
     messages: LLMMessage[],
     availableTools: ToolMetadata[],
     options?: { signal?: AbortSignal }
   ): Promise<LLMResponse> {
-    // 1. Separate system instruction from conversation history
-    let systemInstruction: string | undefined;
-    const contents: GeminiContent[] = [];
+    try {
+      return await this.generateWithInteractionsAPI(
+        messages,
+        availableTools,
+        options
+      );
+    } catch {
+      // If Interactions API fails or is not enabled for the key/region, use generateContent fallback
+      return await this.generateWithContentAPI(
+        messages,
+        availableTools,
+        options
+      );
+    }
+  }
+
+  /**
+   * Primary Path: Google GenAI Interactions API (client.interactions.create)
+   */
+  private async generateWithInteractionsAPI(
+    messages: LLMMessage[],
+    availableTools: ToolMetadata[],
+    _options?: { signal?: AbortSignal }
+  ): Promise<LLMResponse> {
+    const systemInstruction =
+      messages.find((m) => m.role === "system")?.content ||
+      KAVACH_MASTER_SYSTEM_INSTRUCTIONS;
+
+    // Convert ToolMetadata to Interactions API function tool declarations
+    const tools = availableTools.map((tool) => {
+      const properties: Record<string, { type: string; description: string }> = {};
+      const required: string[] = [];
+
+      for (const [paramName, paramDef] of Object.entries(tool.parameters || {})) {
+        properties[paramName] = {
+          type: paramDef.type.toLowerCase(),
+          description: paramDef.description,
+        };
+        if (paramDef.required) {
+          required.push(paramName);
+        }
+      }
+
+      return {
+        type: "function" as const,
+        name: tool.name,
+        description: tool.description,
+        parameters: {
+          type: "object",
+          properties,
+          required: required.length > 0 ? required : undefined,
+        },
+      };
+    });
+
+    // Check if the latest message is a tool result continuation
+    const lastMsg = messages[messages.length - 1];
+    const isToolContinuation = lastMsg && lastMsg.role === "tool";
+
+    let interaction;
+
+    if (isToolContinuation && this.lastInteractionId) {
+      // Continue previous interaction with tool output
+      interaction = await this.client.interactions.create({
+        model: this.modelIdentifier,
+        previous_interaction_id: this.lastInteractionId,
+        input: [
+          {
+            type: "function_result",
+            call_id: lastMsg.toolCallId || `call_${Date.now()}`,
+            name: lastMsg.name || "tool_result",
+            result: lastMsg.content,
+          },
+        ],
+      });
+    } else {
+      // New interaction: gather user instruction
+      const userMsgs = messages.filter((m) => m.role === "user");
+      const latestUserPrompt =
+        userMsgs[userMsgs.length - 1]?.content || "Process current request";
+
+      interaction = await this.client.interactions.create({
+        model: this.modelIdentifier,
+        system_instruction: systemInstruction,
+        input: latestUserPrompt,
+        tools: tools.length > 0 ? (tools as unknown as NonNullable<Parameters<typeof this.client.interactions.create>[0]>["tools"]) : undefined,
+      });
+    }
+
+    // Save interaction ID for multi-turn server-side continuation
+    if (interaction?.id) {
+      this.lastInteractionId = interaction.id;
+    }
+
+    // Extract function calls from interaction steps
+    const toolCalls: ToolCallRequest[] = [];
+    const textContent = interaction.output_text || "";
+
+    if (interaction.steps) {
+      for (const step of interaction.steps) {
+        if (step.type === "function_call") {
+          toolCalls.push({
+            id:
+              step.id ||
+              `call_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+            toolName: step.name,
+            arguments: step.arguments || {},
+          });
+        }
+      }
+    }
+
+    const finishReason = toolCalls.length > 0 ? "tool_use" : "stop";
+
+    return {
+      content: textContent,
+      toolCalls,
+      finishReason,
+      raw: interaction,
+    };
+  }
+
+  /**
+   * Compatibility Fallback: Google GenAI generateContent API (client.models.generateContent)
+   */
+  private async generateWithContentAPI(
+    messages: LLMMessage[],
+    availableTools: ToolMetadata[],
+    _options?: { signal?: AbortSignal }
+  ): Promise<LLMResponse> {
+    let systemInstruction: string = KAVACH_MASTER_SYSTEM_INSTRUCTIONS;
+    const contents: Array<Record<string, unknown>> = [];
 
     for (const msg of messages) {
       if (msg.role === "system") {
-        systemInstruction = (systemInstruction ? systemInstruction + "\n\n" : "") + msg.content;
+        systemInstruction = msg.content;
       } else if (msg.role === "tool") {
         contents.push({
           role: "user",
@@ -96,14 +226,13 @@ export class GeminiLLMProvider implements LLMProvider {
       }
     }
 
-    // 2. Format tool declarations
-    const functionDeclarations: GeminiFunctionDeclaration[] = availableTools.map((tool) => {
+    const functionDeclarations = availableTools.map((tool) => {
       const properties: Record<string, { type: string; description: string }> = {};
       const required: string[] = [];
 
-      for (const [paramName, paramDef] of Object.entries(tool.parameters)) {
+      for (const [paramName, paramDef] of Object.entries(tool.parameters || {})) {
         properties[paramName] = {
-          type: paramDef.type.toUpperCase(),
+          type: paramDef.type.toLowerCase(),
           description: paramDef.description,
         };
         if (paramDef.required) {
@@ -114,48 +243,27 @@ export class GeminiLLMProvider implements LLMProvider {
       return {
         name: tool.name,
         description: tool.description,
-        parameters: {
-          type: "OBJECT",
+        parametersJsonSchema: {
+          type: "object",
           properties,
           required: required.length > 0 ? required : undefined,
         },
       };
     });
 
-    // 3. Construct API payload
-    const requestBody: Record<string, unknown> = {
-      contents,
-    };
-
-    if (systemInstruction) {
-      requestBody.systemInstruction = {
-        parts: [{ text: systemInstruction }],
-      };
-    }
-
-    if (functionDeclarations.length > 0) {
-      requestBody.tools = [{ functionDeclarations }];
-    }
-
-    const endpoint = `${this.baseUrl}/models/${encodeURIComponent(this.modelIdentifier)}:generateContent?key=${encodeURIComponent(this.apiKey)}`;
-
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await this.client.models.generateContent({
+      model: this.modelIdentifier,
+      contents: contents as unknown as Parameters<typeof this.client.models.generateContent>[0]["contents"],
+      config: {
+        systemInstruction,
+        tools:
+          functionDeclarations.length > 0
+            ? [{ functionDeclarations }]
+            : undefined,
       },
-      body: JSON.stringify(requestBody),
-      signal: options?.signal,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Gemini API error [${response.status}]: ${errorText}`);
-    }
-
-    const data = await response.json();
-    const candidate = data.candidates?.[0];
-
+    const candidate = response.candidates?.[0];
     if (!candidate) {
       return {
         content: "",
@@ -167,38 +275,27 @@ export class GeminiLLMProvider implements LLMProvider {
     const toolCalls: ToolCallRequest[] = [];
     let textContent = "";
 
-    const parts: GeminiPart[] = candidate.content?.parts || [];
+    const parts = candidate.content?.parts || [];
     for (const part of parts) {
       if (part.text) {
         textContent += part.text;
       }
-      if (part.functionCall) {
+      if (part.functionCall && part.functionCall.name) {
         toolCalls.push({
           id: `call_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
           toolName: part.functionCall.name,
-          arguments: part.functionCall.args || {},
+          arguments: (part.functionCall.args as Record<string, unknown>) || {},
         });
       }
     }
 
-    const finishReason =
-      toolCalls.length > 0
-        ? "tool_use"
-        : candidate.finishReason === "STOP"
-        ? "stop"
-        : "stop";
+    const finishReason = toolCalls.length > 0 ? "tool_use" : "stop";
 
     return {
       content: textContent,
       toolCalls,
       finishReason,
-      usage: data.usageMetadata
-        ? {
-            inputTokens: data.usageMetadata.promptTokenCount,
-            outputTokens: data.usageMetadata.candidatesTokenCount,
-          }
-        : undefined,
-      raw: data,
+      raw: response,
     };
   }
 }
