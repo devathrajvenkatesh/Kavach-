@@ -23,6 +23,18 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
     title: "AI Agent",
     subtitle: "Interact securely with Kavach protected by deterministic authority boundaries.",
   },
+  files: {
+    title: "Secure File Workspace",
+    subtitle: "Drive-style secure workspace inspecting untrusted emails, PDFs, and documents for prompt injection.",
+  },
+  "secure-files": {
+    title: "Secure File Workspace",
+    subtitle: "Drive-style secure workspace inspecting untrusted emails, PDFs, and documents for prompt injection.",
+  },
+  "files-workspace": {
+    title: "Secure File Workspace",
+    subtitle: "Drive-style secure workspace inspecting untrusted emails, PDFs, and documents for prompt injection.",
+  },
   "threat-center": {
     title: "Threat Center",
     subtitle: "Kavach continuously identifies and blocks attempts to manipulate the AI agent.",

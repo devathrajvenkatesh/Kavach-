@@ -22,6 +22,7 @@ interface CommandCenterProps {
   onNavigateToThreats?: () => void;
   onNavigateToActivity?: () => void;
   onNavigateToTrace?: (correlationId?: string) => void;
+  onNavigateToFiles?: () => void;
 }
 
 export function CommandCenter({
@@ -29,6 +30,7 @@ export function CommandCenter({
   onNavigateToLiveDemo,
   onNavigateToThreats,
   onNavigateToActivity,
+  onNavigateToFiles,
 }: CommandCenterProps) {
   const [recentEvents, setRecentEvents] = useState<AuditEvent[]>([]);
   const [lastActivityTime, setLastActivityTime] = useState<string>("Just now");
@@ -272,14 +274,25 @@ export function CommandCenter({
             </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] space-y-2">
-            <div className="w-8 h-8 rounded-lg bg-[#EBF1ED] border border-[#A5B5A9]/50 flex items-center justify-center text-[#2E595A]">
-              <Sparkles className="w-4 h-4 text-[#2E595A]" />
+          <div className="p-4 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] space-y-2 flex flex-col justify-between">
+            <div className="space-y-2">
+              <div className="w-8 h-8 rounded-lg bg-[#EBF1ED] border border-[#A5B5A9]/50 flex items-center justify-center text-[#2E595A]">
+                <Sparkles className="w-4 h-4 text-[#2E595A]" />
+              </div>
+              <h4 className="text-xs font-bold text-[#052326]">Zero-Authority Data Boundary</h4>
+              <p className="text-[11px] text-[#678882] leading-relaxed">
+                External content is tagged as raw untrusted data. The LLM can analyze it, but can never execute commands from it.
+              </p>
             </div>
-            <h4 className="text-xs font-bold text-[#052326]">Zero-Authority Data Boundary</h4>
-            <p className="text-[11px] text-[#678882] leading-relaxed">
-              External content is tagged as raw untrusted data. The LLM can analyze it, but can never execute commands from it.
-            </p>
+            {onNavigateToFiles && (
+              <button
+                onClick={onNavigateToFiles}
+                className="mt-2 text-[11px] font-semibold text-[#2E595A] hover:text-[#052326] flex items-center gap-1 transition-colors self-start"
+              >
+                <span>Open Secure Files</span>
+                <span>→</span>
+              </button>
+            )}
           </div>
         </div>
       </section>

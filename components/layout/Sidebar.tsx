@@ -9,18 +9,22 @@ import {
   FlaskConical,
   ScrollText,
   Sliders,
+  FolderLock,
 } from "lucide-react";
 import { KavachLogo } from "@/components/brand/KavachLogo";
 
 export type NavItemKey =
   | "overview"
   | "ai-agent"
+  | "files"
   | "threat-center"
   | "security-activity"
   | "attack-lab"
   | "audit"
   | "settings"
   // Backward compatibility keys
+  | "secure-files"
+  | "files-workspace"
   | "live-agent"
   | "threat-detection"
   | "security-events"
@@ -57,6 +61,13 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
     icon: Bot,
     badge: "Live",
     aliases: ["live-agent"],
+  },
+  {
+    key: "files",
+    label: "Secure Files",
+    icon: FolderLock,
+    badge: "Drive",
+    aliases: ["secure-files", "files-workspace"],
   },
   {
     key: "threat-center",

@@ -11,7 +11,9 @@ import { AttackLab } from "@/components/attack-lab/AttackLab";
 import { AuditTrail } from "@/components/audit/AuditTrail";
 import { SecurityTraceView } from "@/components/audit/SecurityTraceView";
 import { SettingsView } from "@/components/views/SettingsView";
+import { SecureFileWorkspace } from "@/components/files/SecureFileWorkspace";
 import { UnifiedTestCase } from "@/lib/attack-lab/types";
+import { WorkspaceFile } from "@/types/file-workspace";
 
 export default function HomePage() {
   const [activeKey, setActiveKey] = useState<NavItemKey>("overview");
@@ -32,6 +34,25 @@ export default function HomePage() {
   const handleNavigateToTrace = (correlationId?: string) => {
     if (correlationId) setSelectedTraceId(correlationId);
     setActiveKey("security-trace");
+  };
+
+  const handleFileToAgent = (file: WorkspaceFile) => {
+    const isThreat = file.securityStatus === "THREAT_DETECTED" || file.securityStatus === "BLOCKED";
+    const demoCase: UnifiedTestCase = {
+      id: file.id,
+      name: file.name,
+      category: "INDIRECT_PROMPT_INJECTION",
+      severity: file.riskLevel,
+      sourceType: file.type === "Email" ? "email_body" : file.type === "PDF" ? "pdf_document" : "file_content",
+      userIntent: `Analyze document "${file.name}" and provide a summary of any action items.`,
+      payload: file.extractedPreview,
+      expectedThreat: isThreat,
+      expectedDecision: isThreat ? "BLOCK" : "APPROVE",
+      expectedExecution: !isThreat,
+      description: `Uploaded file inspection: ${file.summary}`,
+    };
+    setSelectedDemoCase(demoCase);
+    setActiveKey("ai-agent");
   };
 
   return (
@@ -57,11 +78,18 @@ export default function HomePage() {
               onNavigateToThreats={() => setActiveKey("threat-center")}
               onNavigateToActivity={() => setActiveKey("security-activity")}
               onNavigateToTrace={handleNavigateToTrace}
+              onNavigateToFiles={() => setActiveKey("files")}
             />
           )}
 
           {(activeKey === "ai-agent" || activeKey === "live-agent") && (
             <LiveAttackDemo initialCase={selectedDemoCase} />
+          )}
+
+          {(activeKey === "files" ||
+            activeKey === "secure-files" ||
+            activeKey === "files-workspace") && (
+            <SecureFileWorkspace onSendToAgent={handleFileToAgent} />
           )}
 
           {(activeKey === "threat-center" ||
