@@ -4,17 +4,12 @@ import React, { useState } from "react";
 import { Sidebar, NavItemKey } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { CommandCenter } from "@/components/dashboard/CommandCenter";
-import { AttackLab } from "@/components/attack-lab/AttackLab";
 import { LiveAttackDemo } from "@/components/demo/LiveAttackDemo";
-import { ThreatDetectionView } from "@/components/views/ThreatDetectionView";
-import { SecurityEventsView } from "@/components/views/SecurityEventsView";
-import { PolicyDecisionsView } from "@/components/views/PolicyDecisionsView";
-import { SecurityTraceView } from "@/components/audit/SecurityTraceView";
+import { ThreatCenterView } from "@/components/views/ThreatCenterView";
+import { SecurityActivityView } from "@/components/views/SecurityActivityView";
+import { AttackLab } from "@/components/attack-lab/AttackLab";
 import { AuditTrail } from "@/components/audit/AuditTrail";
-import { EvaluationView } from "@/components/views/EvaluationView";
-import { ToolsView } from "@/components/views/ToolsView";
-import { ProvidersView } from "@/components/views/ProvidersView";
-import { SystemHealthView } from "@/components/views/SystemHealthView";
+import { SecurityTraceView } from "@/components/audit/SecurityTraceView";
 import { SettingsView } from "@/components/views/SettingsView";
 import { UnifiedTestCase } from "@/lib/attack-lab/types";
 
@@ -31,7 +26,7 @@ export default function HomePage() {
 
   const handleNavigateToLiveDemo = (testCase?: UnifiedTestCase) => {
     if (testCase) setSelectedDemoCase(testCase);
-    setActiveKey("live-agent");
+    setActiveKey("ai-agent");
   };
 
   const handleNavigateToTrace = (correlationId?: string) => {
@@ -41,7 +36,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex bg-[#FBF9F8] text-[#052326] font-sans antialiased selection:bg-[#C9A86A]/30">
-      {/* 1. Left Sidebar (Fixed Desktop-First Shell) */}
+      {/* 1. Left Sidebar (Streamlined Enterprise Navigation) */}
       <Sidebar activeKey={activeKey} onSelectKey={setActiveKey} />
 
       {/* 2. Main Application Canvas */}
@@ -50,21 +45,31 @@ export default function HomePage() {
         <TopBar
           activeKey={activeKey}
           recentAlertCount={3}
-          onOpenNotifications={() => setActiveKey("security-events")}
+          onOpenNotifications={() => setActiveKey("security-activity")}
         />
 
         {/* Content Area */}
         <main className="flex-1 p-6 sm:p-8 max-w-7xl w-full mx-auto">
           {activeKey === "overview" && (
             <CommandCenter
-              onNavigateToAttackLab={handleNavigateToAttackLab}
+              onNavigateToAttackLab={() => handleNavigateToAttackLab()}
               onNavigateToLiveDemo={() => handleNavigateToLiveDemo()}
+              onNavigateToThreats={() => setActiveKey("threat-center")}
+              onNavigateToActivity={() => setActiveKey("security-activity")}
               onNavigateToTrace={handleNavigateToTrace}
             />
           )}
 
-          {activeKey === "live-agent" && (
+          {(activeKey === "ai-agent" || activeKey === "live-agent") && (
             <LiveAttackDemo initialCase={selectedDemoCase} />
+          )}
+
+          {(activeKey === "threat-center" ||
+            activeKey === "threat-detection" ||
+            activeKey === "policy-decisions") && <ThreatCenterView />}
+
+          {(activeKey === "security-activity" || activeKey === "security-events") && (
+            <SecurityActivityView onNavigateToTrace={handleNavigateToTrace} />
           )}
 
           {activeKey === "attack-lab" && (
@@ -74,34 +79,21 @@ export default function HomePage() {
             />
           )}
 
-          {activeKey === "threat-detection" && <ThreatDetectionView />}
-
-          {activeKey === "security-events" && (
-            <SecurityEventsView onNavigateToTrace={handleNavigateToTrace} />
+          {(activeKey === "audit" || activeKey === "audit-trail" || activeKey === "evaluation") && (
+            <AuditTrail onNavigateToTrace={handleNavigateToTrace} />
           )}
-
-          {activeKey === "policy-decisions" && <PolicyDecisionsView />}
 
           {activeKey === "security-trace" && (
             <SecurityTraceView
               initialCorrelationId={selectedTraceId}
-              onClose={() => setActiveKey("overview")}
+              onClose={() => setActiveKey("audit")}
             />
           )}
 
-          {activeKey === "audit-trail" && (
-            <AuditTrail onNavigateToTrace={handleNavigateToTrace} />
-          )}
-
-          {activeKey === "evaluation" && <EvaluationView />}
-
-          {activeKey === "tools" && <ToolsView />}
-
-          {activeKey === "providers" && <ProvidersView />}
-
-          {activeKey === "system-health" && <SystemHealthView />}
-
-          {activeKey === "settings" && <SettingsView />}
+          {(activeKey === "settings" ||
+            activeKey === "tools" ||
+            activeKey === "providers" ||
+            activeKey === "system-health") && <SettingsView />}
         </main>
 
         {/* Footer */}

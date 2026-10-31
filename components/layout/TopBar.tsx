@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Bell, Sparkles, User, ShieldCheck } from "lucide-react";
+import { Bell, ShieldCheck, User } from "lucide-react";
 import { NavItemKey } from "./Sidebar";
 
 interface TopBarProps {
@@ -10,58 +10,58 @@ interface TopBarProps {
   onOpenNotifications?: () => void;
 }
 
-const PAGE_META: Record<NavItemKey, { title: string; subtitle: string }> = {
+const PAGE_META: Record<string, { title: string; subtitle: string }> = {
   overview: {
-    title: "Security Command Center",
-    subtitle: "Real-time posture and multi-layer deterministic defense for AI agents.",
+    title: "Overview",
+    subtitle: "Real-time security posture and monitoring for your AI agent.",
+  },
+  "ai-agent": {
+    title: "AI Agent",
+    subtitle: "Interact securely with Kavach protected by deterministic authority boundaries.",
   },
   "live-agent": {
-    title: "Live Agent Simulator",
-    subtitle: "Interactive prompt injection testing and real-time security gateway interception.",
+    title: "AI Agent",
+    subtitle: "Interact securely with Kavach protected by deterministic authority boundaries.",
   },
-  "attack-lab": {
-    title: "Adversarial Attack Lab",
-    subtitle: "138-case deterministic regression corpus and category-level penetration matrix.",
+  "threat-center": {
+    title: "Threat Center",
+    subtitle: "Kavach continuously identifies and blocks attempts to manipulate the AI agent.",
   },
   "threat-detection": {
-    title: "Threat Detection Engine",
-    subtitle: "Unicode NFKD normalization, heuristic signatures, and exfiltration detectors.",
+    title: "Threat Center",
+    subtitle: "Kavach continuously identifies and blocks attempts to manipulate the AI agent.",
+  },
+  "security-activity": {
+    title: "Security Activity",
+    subtitle: "Chronological activity feed of all agent requests, security checks, and protection events.",
   },
   "security-events": {
-    title: "Intercepted Security Events",
-    subtitle: "Live audit telemetry of intercepted prompt injections and policy denials.",
+    title: "Security Activity",
+    subtitle: "Chronological activity feed of all agent requests, security checks, and protection events.",
   },
   "policy-decisions": {
-    title: "Policy Engine & Governance",
-    subtitle: "Deterministic rule evaluation: APPROVE, BLOCK, and REQUIRE_CONFIRMATION.",
+    title: "Policy Decisions",
+    subtitle: "Deterministic enforcement of read permissions, side-effects, and human confirmations.",
   },
-  "security-trace": {
-    title: "Security Traces & Forensics",
-    subtitle: "End-to-end correlation ID request tracking across agent reasoning cycles.",
+  "attack-lab": {
+    title: "Attack Lab",
+    subtitle: "Adversarial testing and security verification against 138 attack vectors.",
+  },
+  audit: {
+    title: "Audit Trail",
+    subtitle: "Tamper-evident log of all agent interactions and policy evaluations.",
   },
   "audit-trail": {
-    title: "Tamper-Evident Audit Trail",
-    subtitle: "Cryptographic event log preserving immutable evidence with zero secret logging.",
+    title: "Audit Trail",
+    subtitle: "Tamper-evident log of all agent interactions and policy evaluations.",
   },
-  evaluation: {
-    title: "Quantitative Security Evaluation",
-    subtitle: "Standardized benchmark scorecards across 112 malicious and 22 benign cases.",
-  },
-  tools: {
-    title: "Tool Gateway & Sandboxes",
-    subtitle: "Declarative schemas, execution boundaries, and zero-authority data wrappers.",
-  },
-  providers: {
-    title: "LLM Providers & Architecture",
-    subtitle: "Decoupled agent reasoning: Gemini 3.8 Flash, Mock, and zero-execution invariants.",
-  },
-  "system-health": {
-    title: "System Integrity & Health",
-    subtitle: "Runtime latencies and component availability across the defensive perimeter.",
+  "security-trace": {
+    title: "Security Forensics",
+    subtitle: "Detailed end-to-end request tracing and security forensics.",
   },
   settings: {
-    title: "Defense Configuration & Settings",
-    subtitle: "Enforcement policies, audit log thresholds, and environment controls.",
+    title: "Settings",
+    subtitle: "Configure protection policies, notifications, and system diagnostics.",
   },
 };
 
@@ -73,8 +73,8 @@ export function TopBar({
   const meta = PAGE_META[activeKey] || PAGE_META.overview;
 
   return (
-    <header className="h-16 bg-white border-b border-[#E8ECE9] px-6 flex items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(5,35,38,0.02)]">
-      {/* Left: Page Title & Subtitle */}
+    <header className="h-16 bg-white border-b border-[#E8ECE9] px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(5,35,38,0.02)]">
+      {/* Left: Clean Page Title & Supporting Subtext */}
       <div>
         <h1 className="text-base font-bold text-[#052326] tracking-tight flex items-center space-x-2">
           <span>{meta.title}</span>
@@ -84,52 +84,44 @@ export function TopBar({
         </p>
       </div>
 
-      {/* Right: Operational Status, Active Provider, Alerts, Profile */}
+      {/* Right: Protection Status, Agent Online, Alerts, Profile */}
       <div className="flex items-center space-x-3.5">
-        {/* Defense Operational Pill */}
-        <div className="hidden sm:flex items-center space-x-2 px-3 py-1 rounded-full bg-[#F2F6F3] border border-[#A5B5A9]/50 text-xs text-[#2E595A]">
+        {/* Layer 1: Protection Status Indicator */}
+        <div className="flex items-center space-x-2 px-3 py-1 rounded-full bg-[#EBF1ED] border border-[#A5B5A9]/50 text-xs text-[#2E595A]">
           <ShieldCheck className="w-3.5 h-3.5 text-[#2E595A]" />
-          <span className="font-semibold text-[11px] tracking-wide uppercase">
-            DEFENSE OPERATIONAL
+          <span className="font-bold text-[11px] tracking-wide text-[#052326]">
+            PROTECTED
           </span>
         </div>
 
-        {/* Provider Tag */}
-        <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#FAF5EB] border border-[#C9A86A]/40 text-xs">
-          <Sparkles className="w-3 h-3 text-[#C9A86A]" />
-          <span className="text-[10px] uppercase font-bold tracking-wider text-[#052326]">
-            PROVIDER:
-          </span>
-          <span className="text-[10px] font-mono font-bold text-[#C9A86A]">
-            GEMINI
+        {/* Layer 1: Agent Status */}
+        <div className="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#FBF9F8] border border-[#E8ECE9] text-xs text-[#2E595A]">
+          <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
+          <span className="text-[11px] font-medium text-[#2E595A]">
+            Agent Online
           </span>
         </div>
 
-        {/* Notifications Icon */}
+        {/* Notifications Icon Button */}
         <button
           onClick={onOpenNotifications}
           className="relative p-2 rounded-lg text-[#678882] hover:text-[#052326] hover:bg-[#F7F9F8] transition-colors"
-          title="Recent Security Alerts"
+          title="Security Alerts"
         >
           <Bell className="w-4 h-4" />
           {recentAlertCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#C9A86A] ring-2 ring-white" />
+            <span className="absolute top-1 right-1 w-2 h-2 bg-[#C9A86A] rounded-full ring-2 ring-white" />
           )}
         </button>
 
-        {/* Profile / System Menu */}
+        {/* User Profile Avatar */}
         <div className="flex items-center space-x-2 pl-2 border-l border-[#E8ECE9]">
-          <div className="w-8 h-8 rounded-full bg-[#EBF1ED] border border-[#A5B5A9]/60 flex items-center justify-center text-[#2E595A] font-semibold text-xs shadow-sm">
-            <User className="w-4 h-4" />
+          <div className="w-7 h-7 rounded-full bg-[#052326] text-white flex items-center justify-center text-xs font-semibold">
+            <User className="w-3.5 h-3.5" />
           </div>
-          <div className="hidden md:flex flex-col text-left">
-            <span className="text-xs font-bold text-[#052326] leading-none">
-              SecOps Lead
-            </span>
-            <span className="text-[10px] font-mono text-[#678882] leading-tight">
-              Enterprise Admin
-            </span>
-          </div>
+          <span className="hidden md:inline text-xs font-medium text-[#052326]">
+            Security Admin
+          </span>
         </div>
       </div>
     </header>

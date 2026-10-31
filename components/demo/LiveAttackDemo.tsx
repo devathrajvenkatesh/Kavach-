@@ -137,8 +137,16 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [expandedSecurityIds, setExpandedSecurityIds] = useState<Record<string, boolean>>({});
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const toggleSecurityDetails = (id: string) => {
+    setExpandedSecurityIds((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -329,7 +337,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
           }`}
         >
           <Bot className="w-4 h-4 text-[#C9A86A]" />
-          <span>Live Interactive Agent Console</span>
+          <span>Chat with Kavach</span>
           <span className="w-1.5 h-1.5 rounded-full bg-[#C9A86A] ml-1" />
         </button>
 
@@ -342,32 +350,29 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
           }`}
         >
           <Cpu className="w-4 h-4 text-[#678882]" />
-          <span>Attack Scenario Stepper (138 Cases)</span>
+          <span>Attack Simulation Stepper</span>
         </button>
       </div>
 
       {/* ========================================================================= */}
-      {/* TAB 1: LIVE INTERACTIVE AGENT CONSOLE (POST /api/agent)                  */}
+      {/* TAB 1: KAVACH AGENT CONVERSATION (POST /api/agent)                       */}
       {/* ========================================================================= */}
       {activeTab === "live-chat" && (
         <div className="space-y-4">
-          {/* Console Header */}
-          <div className="rounded-2xl border border-[#E8ECE9] bg-white p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          {/* Header */}
+          <div className="rounded-2xl border border-[#E8ECE9] bg-white p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center space-x-2">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#EBF1ED] text-[#052326] border border-[#A5B5A9]/50">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#2E595A] mr-1.5 animate-pulse" />
-                  POST /api/agent • ACTIVE DEFENSE PERIMETER
-                </span>
-                <span className="text-xs font-mono text-[#678882]">
-                  • SERVER-SIDE ORCHESTRATOR
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EBF1ED] text-[#052326] border border-[#A5B5A9]/50">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 mr-1.5 animate-pulse" />
+                  Online · Protected by Kavach
                 </span>
               </div>
               <h2 className="text-xl sm:text-2xl font-serif font-bold text-[#052326]">
-                Live Agent Interactive Defense
+                Kavach Agent
               </h2>
-              <p className="text-xs text-[#2E595A]">
-                Submit real-time prompts to the Gemini-backed Kavach agent. Every requested tool call is evaluated by the Security Gateway and Policy Engine before execution.
+              <p className="text-xs text-[#678882]">
+                Your secure AI assistant. Protected from prompt injections, unauthorized actions, and data leaks.
               </p>
             </div>
 
@@ -454,15 +459,10 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                         <div className="w-5 h-5 rounded-full bg-[#2E595A] text-[#C9A86A] flex items-center justify-center text-[10px]">
                           <Bot className="w-3 h-3" />
                         </div>
-                        <span className="text-xs font-mono font-bold text-[#052326]">
+                        <span className="text-xs font-semibold text-[#052326]">
                           Kavach Agent
                         </span>
-                        {msg.provider && (
-                          <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#FAF5EB] text-[#052326] border border-[#C9A86A]/30">
-                            {msg.provider.modelIdentifier}
-                          </span>
-                        )}
-                        <span className="text-[10px] font-mono text-[#678882]">{msg.timestamp}</span>
+                        <span className="text-[10px] text-[#678882]">{msg.timestamp}</span>
                       </>
                     )}
                   </div>
@@ -478,38 +478,113 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                   >
                     <div className="whitespace-pre-wrap">{msg.content}</div>
 
-                    {/* Compact Security Indicator for Assistant Responses */}
+                    {/* Layer 1: Compact User-Facing Status & Collapsible Details Trigger */}
                     {msg.role === "assistant" && msg.security && (
-                      <div className="mt-3 pt-2.5 border-t border-[#E8ECE9]/70 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono">
-                        {msg.status === "BLOCKED" || msg.security.attackDetected ? (
-                          <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-white border border-[#C9A86A]/40 text-[#052326]">
-                            <ShieldAlert className="w-3.5 h-3.5 text-[#C9A86A]" />
-                            <span className="font-bold text-[#C9A86A]">● THREAT BLOCKED</span>
-                            <span>•</span>
-                            <span className="text-[#678882]">
-                              {msg.security.threatCategory || "Prompt Injection Intercepted"}
-                            </span>
-                          </div>
-                        ) : msg.status === "REQUIRES_CONFIRMATION" ? (
-                          <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-white border border-[#C9A86A]/40 text-[#052326]">
-                            <Lock className="w-3.5 h-3.5 text-[#C9A86A]" />
-                            <span className="font-bold text-[#C9A86A]">● CONFIRMATION REQUIRED</span>
-                            <span>•</span>
-                            <span className="text-[#678882]">Consequential Action Paused</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-full bg-[#EBF1ED] border border-[#A5B5A9]/50 text-[#2E595A]">
-                            <ShieldCheck className="w-3.5 h-3.5 text-[#2E595A]" />
-                            <span className="font-bold text-[#2E595A]">● SECURE</span>
-                            <span>•</span>
-                            <span>Request completed within authority boundary</span>
-                          </div>
-                        )}
+                      <div className="mt-3 pt-2.5 border-t border-[#E8ECE9]/70 space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                          {msg.status === "BLOCKED" || msg.security.attackDetected ? (
+                            <div className="flex items-center space-x-1.5 text-[#052326] font-medium">
+                              <ShieldAlert className="w-4 h-4 text-[#C9A86A] flex-shrink-0" />
+                              <span className="text-[#C9A86A] font-bold">⚠ Threat blocked</span>
+                              <span className="text-[#678882]">· Kavach prevented an unsafe request</span>
+                            </div>
+                          ) : msg.status === "REQUIRES_CONFIRMATION" ? (
+                            <div className="flex items-center space-x-1.5 text-[#052326] font-medium">
+                              <Lock className="w-4 h-4 text-[#C9A86A] flex-shrink-0" />
+                              <span className="text-[#C9A86A] font-bold">🔒 Action paused</span>
+                              <span className="text-[#678882]">· Human approval required</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center space-x-1.5 text-[#2E595A] font-medium">
+                              <ShieldCheck className="w-4 h-4 text-[#2E595A] flex-shrink-0" />
+                              <span className="font-bold text-[#2E595A]">✓ Secure</span>
+                              <span className="text-[#678882]">· Request completed safely</span>
+                            </div>
+                          )}
 
-                        {msg.security.correlationId && (
-                          <span className="text-[10px] text-[#678882]">
-                            ID: {msg.security.correlationId.slice(0, 14)}...
-                          </span>
+                          <button
+                            type="button"
+                            onClick={() => toggleSecurityDetails(msg.id)}
+                            className="text-[11px] font-medium text-[#2E595A] hover:text-[#052326] transition-colors underline-offset-2 hover:underline cursor-pointer"
+                          >
+                            {expandedSecurityIds[msg.id]
+                              ? "Hide security details ↑"
+                              : "View security details →"}
+                          </button>
+                        </div>
+
+                        {/* Layer 2: Expandable Security Details */}
+                        {expandedSecurityIds[msg.id] && (
+                          <div className="p-3.5 rounded-xl bg-white border border-[#E8ECE9] shadow-xs text-xs space-y-2.5 animate-in fade-in duration-200">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-[#678882] font-mono">
+                              Security Details
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                              <div>
+                                <span className="text-[10px] text-[#678882] block">Threat detected:</span>
+                                <span className="font-semibold text-[#052326]">
+                                  {msg.security.attackDetected ? "Yes" : "No"}
+                                </span>
+                              </div>
+
+                              <div>
+                                <span className="text-[10px] text-[#678882] block">Security decision:</span>
+                                <span
+                                  className={`font-semibold ${
+                                    msg.security.decision === "BLOCK"
+                                      ? "text-[#C9A86A]"
+                                      : msg.security.decision === "REQUIRE_CONFIRMATION"
+                                      ? "text-[#C9A86A]"
+                                      : "text-[#2E595A]"
+                                  }`}
+                                >
+                                  {msg.security.decision === "BLOCK"
+                                    ? "Blocked"
+                                    : msg.security.decision === "REQUIRE_CONFIRMATION"
+                                    ? "Confirmation Required"
+                                    : "Approved"}
+                                </span>
+                              </div>
+
+                              <div>
+                                <span className="text-[10px] text-[#678882] block">Threat category:</span>
+                                <span className="font-semibold text-[#052326]">
+                                  {msg.security.threatCategory || "None"}
+                                </span>
+                              </div>
+
+                              <div>
+                                <span className="text-[10px] text-[#678882] block">Policy:</span>
+                                <span className="font-semibold text-[#052326]">
+                                  {msg.status === "BLOCKED"
+                                    ? "Action denied by security rule"
+                                    : msg.status === "REQUIRES_CONFIRMATION"
+                                    ? "Consequential action gate"
+                                    : "Request allowed"}
+                                </span>
+                              </div>
+
+                              <div className="col-span-2 sm:col-span-2">
+                                <span className="text-[10px] text-[#678882] block">Execution:</span>
+                                <span className="font-semibold text-[#052326]">
+                                  {msg.status === "BLOCKED"
+                                    ? "Neutralized without unauthorized side-effects"
+                                    : msg.status === "REQUIRES_CONFIRMATION"
+                                    ? "Awaiting explicit human confirmation"
+                                    : "Completed safely within authority boundary"}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Layer 3: Technical Debug Reference (Collapsible) */}
+                            {msg.security.correlationId && (
+                              <div className="pt-2 border-t border-[#E8ECE9]/70 flex items-center justify-between text-[10px] font-mono text-[#678882]">
+                                <span>Ref: {msg.security.correlationId.slice(0, 16)}...</span>
+                                <span>Perimeter: Enforced</span>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}
