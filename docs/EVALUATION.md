@@ -1,4 +1,4 @@
-# Possessed Butler — Evaluation & Benchmarking Strategy
+# Kavach — Evaluation & Benchmarking Strategy
 
 ## 1. Evaluation Objectives
 

@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Tool Gateway
+ * Kavach - Tool Gateway
  *
  * The sole execution boundary for all tools. Enforces that execution is permitted
  * ONLY when a valid PolicyDecision with outcome === "APPROVE" is supplied.

@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Security Pipeline Runner
+ * Kavach - Security Pipeline Runner
  *
  * Enforces the mandatory multi-layer defense pipeline for the Attack Lab:
  * Attack Lab -> Orchestrator -> Security Gateway -> Threat Analyzer -> Policy Engine -> Tool Gateway -> Audit Logger

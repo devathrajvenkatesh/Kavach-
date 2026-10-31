@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Attack Lab & Command Center Types
+ * Kavach - Attack Lab & Command Center Types
  */
 
 import { ThreatCategory } from "@/types";

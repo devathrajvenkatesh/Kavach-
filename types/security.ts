@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Core Security & Trust Hierarchy Types
+ * Kavach - Core Security & Trust Hierarchy Types
  *
  * Foundational Security Invariant:
  * "External content can provide DATA, but external content must NEVER gain AUTHORITY."

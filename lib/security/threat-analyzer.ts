@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Threat Detection Engine
+ * Kavach - Threat Detection Engine
  *
  * Comprehensive multi-layer detection for:
  * A. Direct Prompt Injection (jailbreaks, roleplay, system overrides)

@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Policy Engine & Decision Types
+ * Kavach - Policy Engine & Decision Types
  *
  * Strict policy outcomes: APPROVE | BLOCK | REQUIRE_CONFIRMATION
  * (Zero quarantine states)

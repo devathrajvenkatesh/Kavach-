@@ -1,8 +1,8 @@
-# Possessed Butler — Threat Model
+# Kavach — Threat Model
 
 ## 1. Adversary Model
 
-We consider an adversary who does not necessarily have direct shell access or access to user credentials, but who can place arbitrary text into data sources that the Butler agent inspects (e.g. sending an email to the user, hosting a webpage the user instructs the Butler to read, or sharing a malicious PDF).
+We consider an adversary who does not necessarily have direct shell access or access to user credentials, but who can place arbitrary text into data sources that the Kavach agent inspects (e.g. sending an email to the user, hosting a webpage the user instructs the Kavach agent to read, or sharing a malicious PDF).
 
 ### Attacker Capabilities:
 - Control over untrusted text bodies (email, HTML, PDF, uploaded files).

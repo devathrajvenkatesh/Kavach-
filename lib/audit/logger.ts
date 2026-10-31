@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Security Audit, Telemetry & Observability Engine
+ * Kavach - Security Audit, Telemetry & Observability Engine
  *
  * Implements tamper-evident, secret-redacted audit logging across the entire defense chain:
  * User -> Orchestrator -> Threat Analyzer -> Security Gateway -> Policy Engine -> Tool Gateway -> Audit Logger

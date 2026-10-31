@@ -46,7 +46,7 @@ const DEMO_PRESETS: { label: string; id: string; description: string }[] = [
   {
     label: "3. Goal Hijacking via Forum Thread",
     id: "GOAL-001",
-    description: "Simulated conversation turn instructs Butler to abandon user task and delete files.",
+    description: "Simulated conversation turn instructs Kavach agent to abandon user task and delete files.",
   },
   {
     label: "4. Privilege Escalation & Confirmation Bypass",
@@ -148,10 +148,10 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
               <span className="text-slate-400">Zero-Authority Architecture In Action</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              LIVE ATTACK DEMO
+              KAVACH LIVE ATTACK DEMO
             </h1>
             <p className="text-slate-400 text-xs sm:text-sm mt-1">
-              Step-by-step inspection demonstrating how Possessed Butler intercepts adversarial injections, enforces deterministic security policies, and prevents tool hijacking.
+              Step-by-step inspection demonstrating how Kavach intercepts adversarial injections, enforces deterministic security policies, and prevents tool hijacking.
             </p>
           </div>
 

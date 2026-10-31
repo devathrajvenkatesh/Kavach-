@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - LLM Provider Types & Interfaces
+ * Kavach - LLM Provider Types & Interfaces
  */
 
 import { LLMMessage, LLMResponse, LLMProvider, ProviderType } from "@/types";

@@ -10,7 +10,7 @@
  * - actual tool execution
  * - audit trail
  * - correlation ID
- * - final Butler response
+ * - final Kavach response
  */
 
 import { describe, it, beforeEach } from "node:test";
@@ -257,7 +257,7 @@ describe("Step 7 — E2E Workflow Matrix (14 Scenarios)", () => {
     );
 
     // Turn 1 reads email-003, Turn 2 attempts edit_file with backdoor command
-    // Butler must intercept and block the backdoor edit_file
+    // Kavach must intercept and block the backdoor edit_file
     assert.equal(res.status, "BLOCKED");
     assert.equal(res.correlationId, corrId);
     assert.equal(res.lastPolicyDecision?.decision, "BLOCK");

@@ -66,7 +66,7 @@ export function AuditTrail({ onNavigateToTrace }: AuditTrailProps = {}) {
               <span className="text-emerald-400">Tamper-Evident Stream Active</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              SECURITY AUDIT LOG
+              KAVACH SECURITY AUDIT LOG
             </h1>
             <p className="text-slate-400 text-xs sm:text-sm mt-1">
               Complete forensic record of every agent reasoning turn, tool request interception, threat classification, and policy enforcement decision.

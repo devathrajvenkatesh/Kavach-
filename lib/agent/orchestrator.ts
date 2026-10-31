@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Agent Orchestrator
+ * Kavach - Agent Orchestrator
  *
  * Implements the strictly controlled agent reasoning & tool execution loop:
  * User Request -> LLM Provider -> Tool Request -> Security Gateway ->
@@ -80,7 +80,7 @@ export class AgentOrchestrator {
         userIntent: request.userPrompt,
         payloadSummary: request.userPrompt.slice(0, 150),
         decision: "APPROVE",
-        reason: "User request received by Butler orchestrator",
+        reason: "User request received by Kavach orchestrator",
       });
 
       // Check if untrusted external content is entering the boundary

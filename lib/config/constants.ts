@@ -1,7 +1,7 @@
 import { TrustLevel } from "@/types";
 
 /**
- * The foundational security invariant for Possessed Butler:
+ * The foundational security invariant for Kavach:
  * External content can provide DATA, but external content must NEVER gain AUTHORITY.
  */
 export const FOUNDATIONAL_SECURITY_INVARIANT =
@@ -52,9 +52,9 @@ export const EXTERNAL_CONTENT_SOURCES = [
 ] as const;
 
 export const APP_METADATA = {
-  name: "Possessed Butler",
-  tagline: "Defensive LLM Agent",
+  name: "Kavach",
+  tagline: "Secure AI Agent Defense System",
   description:
-    "An AI agent architecture designed to execute legitimate tasks while resisting indirect prompt injection, goal hijacking, privilege escalation, and secret exfiltration.",
+    "Kavach — Secure AI Agent Defense System designed to execute legitimate tasks while resisting indirect prompt injection, goal hijacking, privilege escalation, and secret exfiltration.",
   version: "0.1.0",
 } as const;

@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Gemini LLM Provider
+ * Kavach - Gemini LLM Provider
  *
  * Primary real runtime provider utilizing the Google Generative Language API.
  * Reads API credentials and model configuration strictly from environment variables.

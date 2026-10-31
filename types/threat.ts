@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Threat Modeling & Assessment Types
+ * Kavach - Threat Modeling & Assessment Types
  */
 
 export type ThreatSeverity = "NONE" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";

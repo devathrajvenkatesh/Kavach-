@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Core Type Definitions & Architectural Contracts
+ * Kavach - Core Type Definitions & Architectural Contracts
  */
 
 export * from "./security";

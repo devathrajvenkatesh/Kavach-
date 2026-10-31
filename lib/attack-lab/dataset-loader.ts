@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Attack Lab Dataset Loader
+ * Kavach - Attack Lab Dataset Loader
  *
  * Loads, normalizes, and indexes the entire 138-case test corpus:
  * 112 malicious attack vectors across 8 categories, 22 benign tasks, and 4 regression tripwires.

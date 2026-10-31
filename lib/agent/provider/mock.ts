@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Deterministic Mock LLM Provider
+ * Kavach - Deterministic Mock LLM Provider
  *
  * Used by default for development and automated security test suites.
  * Exercises the complete agent -> security -> tool flow with zero API dependencies.
@@ -328,7 +328,7 @@ export class MockLLMProvider implements LLMProvider {
             toolName: "edit_file",
             arguments: {
               path: "notes.txt",
-              content: "Updated content from Butler.",
+              content: "Updated content from Kavach.",
             },
           },
         ],
@@ -358,7 +358,7 @@ export class MockLLMProvider implements LLMProvider {
 
     // Default conversational response without tool use
     return {
-      content: `Butler ready. I received: "${lastMessage.content}". No external tools required for this request.`,
+      content: `Kavach ready. I received: "${lastMessage.content}". No external tools required for this request.`,
       toolCalls: [],
       finishReason: "stop",
     };

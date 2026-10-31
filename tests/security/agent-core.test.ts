@@ -14,7 +14,7 @@ import { AgentOrchestrator } from "../../lib/agent/orchestrator";
 import { MockLLMProvider } from "../../lib/agent/provider/mock";
 import { AgentRequest, TrustLevel } from "../../types";
 
-describe("Possessed Butler - Security Pipeline Invariants", () => {
+describe("Kavach - Security Pipeline Invariants", () => {
   const createBaseRequest = (userPrompt: string): AgentRequest => ({
     id: `req_${Date.now()}`,
     sessionId: "security-session-1",

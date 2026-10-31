@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Possessed Butler | Defensive LLM Agent",
+  title: "Kavach | Secure AI Agent Defense System",
   description:
-    "A defensive LLM agent architecture designed to execute legitimate tasks while resisting indirect prompt injection, goal hijacking, privilege escalation, and unauthorized tool execution.",
+    "Kavach is a secure AI agent defense system designed to execute legitimate tasks while resisting indirect prompt injection, goal hijacking, privilege escalation, and unauthorized tool execution.",
 };
 
 export default function RootLayout({

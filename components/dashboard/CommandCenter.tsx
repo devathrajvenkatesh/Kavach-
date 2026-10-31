@@ -117,11 +117,11 @@ export function CommandCenter({
               <span className="text-slate-400">Deterministic Invariant Mode</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white flex items-center gap-3">
-              SECURITY COMMAND CENTER
+              KAVACH SECURITY COMMAND CENTER
             </h1>
             <p className="text-slate-400 text-sm sm:text-base max-w-3xl leading-relaxed">
               Real-time telemetry, threat distribution matrix, and defensive architecture boundary
-              guarding Butler from indirect prompt injection, secret exfiltration, and tool hijacking.
+              guarding Kavach from indirect prompt injection, secret exfiltration, and tool hijacking.
             </p>
           </div>
 

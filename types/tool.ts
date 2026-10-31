@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Tool Gateway & Execution Types (Pure TypeScript Contracts)
+ * Kavach - Tool Gateway & Execution Types (Pure TypeScript Contracts)
  */
 
 import { TrustContext } from "./security";

@@ -82,7 +82,7 @@ export function SecurityTraceView({ initialCorrelationId, onClose }: SecurityTra
             <span className="text-emerald-400">Deterministic Chain Trace</span>
           </div>
           <h2 className="text-2xl font-extrabold text-white">
-            SECURITY EVENT TRACE VIEW
+            KAVACH SECURITY EVENT TRACE VIEW
           </h2>
           <p className="text-slate-400 text-xs sm:text-sm mt-0.5">
             End-to-end security provenance reconstructing the exact decision chain through each architecture boundary.

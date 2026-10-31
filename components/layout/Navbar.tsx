@@ -3,7 +3,7 @@
 import React from "react";
 import { Shield, Terminal, FlaskConical, ScrollText, Activity, Flame, GitCommit } from "lucide-react";
 
-export type NavSection = "command-center" | "attack-lab" | "live-demo" | "audit" | "trace" | "butler";
+export type NavSection = "command-center" | "attack-lab" | "live-demo" | "audit" | "trace" | "kavach";
 
 interface NavbarProps {
   activeSection: NavSection;
@@ -16,7 +16,7 @@ export const navigationItems: { id: NavSection; label: string; icon: React.Compo
   { id: "live-demo", label: "Live Demo", icon: Flame },
   { id: "audit", label: "Audit Log", icon: ScrollText },
   { id: "trace", label: "Security Traces", icon: GitCommit },
-  { id: "butler", label: "Architecture", icon: Terminal },
+  { id: "kavach", label: "Architecture", icon: Terminal },
 ];
 
 export function Navbar({ activeSection, onSelectSection }: NavbarProps) {
@@ -29,10 +29,10 @@ export function Navbar({ activeSection, onSelectSection }: NavbarProps) {
           </div>
           <div>
             <span className="font-bold text-base tracking-wider text-slate-100 uppercase">
-              Possessed Butler
+              Kavach
             </span>
             <span className="ml-2 text-xs font-mono px-2 py-0.5 rounded bg-indigo-950 border border-indigo-800/60 text-indigo-300">
-              Defensive LLM Agent
+              AI Security
             </span>
           </div>
         </div>

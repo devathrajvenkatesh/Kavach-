@@ -1,8 +1,8 @@
-# Possessed Butler — System Architecture Specification
+# Kavach — System Architecture Specification
 
 ## 1. Architectural Purpose
 
-**Possessed Butler** is a resilient agentic system capable of processing untrusted multi-modal inputs (emails, webpages, documents, and files) while executing high-consequence user tasks without falling victim to prompt injection or control-flow hijacking.
+**Kavach** is a resilient agentic system capable of processing untrusted multi-modal inputs (emails, webpages, documents, and files) while executing high-consequence user tasks without falling victim to prompt injection or control-flow hijacking.
 
 ### The Foundational Security Invariant
 > **"External content can provide DATA, but external content must NEVER gain AUTHORITY."**
@@ -35,7 +35,7 @@
                                     │ (USER_INTENT)
                                     ▼
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        POSSESSED BUTLER CORE                           │
+│                              KAVACH CORE                               │
 │                                                                        │
 │   ┌────────────────────────────────────────────────────────────────┐   │
 │   │ 1. LLM Provider (Mock / Gemini / Anthropic / OpenAI)           │   │

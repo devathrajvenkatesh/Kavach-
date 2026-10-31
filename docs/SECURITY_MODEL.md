@@ -1,4 +1,4 @@
-# Possessed Butler — Security Model
+# Kavach — Security Model
 
 ## 1. Foundational Security Invariant
 
@@ -6,7 +6,7 @@
 
 In typical LLM agents, untrusted external inputs (such as email messages, web documents, or file attachments) are concatenated directly into the prompt context. Because LLMs natively treat tokens uniformly, external inputs can easily manipulate the instruction stream, leading to prompt injection, goal hijacking, and unauthorized action execution.
 
-Possessed Butler eliminates this architectural flaw by decoupling **Data** from **Authority**.
+Kavach eliminates this architectural flaw by decoupling **Data** from **Authority**.
 
 ---
 

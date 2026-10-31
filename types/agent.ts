@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Agent Lifecycle & Execution Types
+ * Kavach - Agent Lifecycle & Execution Types
  */
 
 import { TrustContext } from "./security";

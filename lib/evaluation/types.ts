@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Evaluation & Benchmarking Types
+ * Kavach - Evaluation & Benchmarking Types
  */
 
 import { ThreatCategory } from "@/types";

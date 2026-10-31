@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Deterministic Policy Engine
+ * Kavach - Deterministic Policy Engine
  *
  * Evaluates tool execution requests against declarative security rules.
  * Strict outcome precedence: BLOCK > REQUIRE_CONFIRMATION > APPROVE > (Default Deny: BLOCK)

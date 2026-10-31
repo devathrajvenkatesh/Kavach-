@@ -162,7 +162,7 @@ export function AttackLab({ initialCategory = "ALL", onLaunchDemoWithCase }: Att
               <span className="text-slate-400">138 Deterministic Test Cases</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              ATTACK LAB BENCHMARK
+              KAVACH ATTACK LAB
             </h1>
             <p className="text-slate-400 text-xs sm:text-sm mt-1">
               Interactive test harness running the complete multi-layer security pipeline (Orchestrator → Security Gateway → Threat Analyzer → Policy Engine → Tool Gateway → Audit Logger).

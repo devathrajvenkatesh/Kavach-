@@ -1,9 +1,9 @@
-# Possessed Butler — Defensive LLM Agent
+# Kavach — Secure AI Agent Defense System
 
 > **Foundational Security Invariant:**  
 > *"External content can provide DATA, but external content must NEVER gain AUTHORITY."*
 
-Possessed Butler is a defensive LLM agent architecture designed to execute consequential, multi-modal tasks (involving emails, webpages, files, and external APIs) while systematically resisting **indirect prompt injection**, **goal hijacking**, **privilege escalation**, **secret exfiltration**, and **unauthorized tool execution**.
+Kavach is a secure AI agent defense system designed to execute consequential, multi-modal tasks (involving emails, webpages, files, and external APIs) while systematically resisting **indirect prompt injection**, **goal hijacking**, **privilege escalation**, **secret exfiltration**, and **unauthorized tool execution**.
 
 ---
 
@@ -14,7 +14,7 @@ Possessed Butler is a defensive LLM agent architecture designed to execute conse
 | **Workspace & Foundation** | **Implemented** | Next.js 15, TypeScript (strict), Tailwind CSS, ESLint. |
 | **Architectural Contracts & Types** | **Implemented** | Typed schemas for `AgentRequest`, `AgentResponse`, `ToolRequest`, `ToolResult`, `TrustContext`, `ThreatAssessment`, `PolicyDecision`, `AuditEvent`. |
 | **Security Invariant & Trust Hierarchy** | **Implemented** | Formally defined in `lib/config/constants.ts` and `types/security.ts`. |
-| **UI Shell & Navigation Placeholders** | **Implemented** | Minimal, professional dashboard shell with Butler, Security, Attack Lab, Evaluation, and Audit modules. |
+| **UI Shell & Navigation Placeholders** | **Implemented** | Minimal, professional dashboard shell with Architecture, Security Command Center, Attack Lab, Live Demo, and Audit modules. |
 | **Claude Reasoning Orchestrator** | *Planned* | Targeted for future mission (Anthropic API integration). |
 | **Tool Gateway & Executors** | *Planned* | Email, Web, PDF, and File tools to be integrated in subsequent missions. |
 | **Policy Engine & Threat Detection** | *Planned* | Runtime invariant checks, taint tracking, and sanitization engine. |
@@ -98,7 +98,7 @@ npm run build
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) to view the Possessed Butler shell.
+Visit [http://localhost:3000](http://localhost:3000) to view the Kavach dashboard.
 
 ---
 

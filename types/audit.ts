@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Audit Logging & Telemetry Types
+ * Kavach - Audit Logging & Telemetry Types
  */
 
 import { TrustLevel } from "./security";

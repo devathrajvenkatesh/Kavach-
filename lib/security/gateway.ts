@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Security Gateway
+ * Kavach - Security Gateway
  *
  * Mandatory security checkpoint that sits between the LLM reasoning loop
  * and the Tool Gateway. Evaluates tool requests against user intent and policies,

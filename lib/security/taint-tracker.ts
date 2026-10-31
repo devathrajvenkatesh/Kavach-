@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Taint Tracker
+ * Kavach - Taint Tracker
  *
  * Tracks taint flags across tool execution steps to ensure external content
  * never implicitly gains authority when passed as parameters to other tools.

@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - OpenAI LLM Provider Stub
+ * Kavach - OpenAI LLM Provider Stub
  *
  * Clean architectural stub for optional future OpenAI integration.
  * Reads API credentials and model configuration strictly from environment variables.

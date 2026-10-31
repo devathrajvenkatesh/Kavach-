@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Deterministic Policy Rules
+ * Kavach - Deterministic Policy Rules
  *
  * Enforces the trust hierarchy:
  * SYSTEM POLICY > USER INTENT > AUTHORIZED TOOL POLICY > VALIDATED TOOL OUTPUT > EXTERNAL CONTENT

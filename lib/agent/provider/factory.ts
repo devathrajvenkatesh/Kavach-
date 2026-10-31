@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - LLM Provider Factory
+ * Kavach - LLM Provider Factory
  *
  * Resolves the configured LLM provider dynamically from LLM_PROVIDER env variable.
  * Default is "mock" for zero-credential development and offline testing.

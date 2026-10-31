@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Tool Registry
+ * Kavach - Tool Registry
  *
  * Strict registry of all available tools with Zod parameter schemas,
  * risk metadata, and execution handlers operating on local deterministic sandbox fixtures.

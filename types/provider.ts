@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Model-Independent LLM Provider Contract
+ * Kavach - Model-Independent LLM Provider Contract
  *
  * Supports interchangeable backends (Mock, Gemini, Anthropic, OpenAI)
  * without making any single model or provider a security authority.

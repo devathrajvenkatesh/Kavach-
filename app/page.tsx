@@ -76,7 +76,7 @@ export default function HomePage() {
           <SecurityTraceView initialCorrelationId={selectedTraceId} />
         )}
 
-        {activeSection === "butler" && (
+        {activeSection === "kavach" && (
           <div className="space-y-8 animate-in fade-in duration-300">
             {/* Hero Section */}
             <section className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 sm:p-8 backdrop-blur shadow-xl relative overflow-hidden">
@@ -90,10 +90,10 @@ export default function HomePage() {
                     <span className="text-emerald-400">Deterministic Invariants</span>
                   </div>
                   <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
-                    POSSESSED BUTLER
+                    KAVACH
                   </h1>
                   <p className="text-slate-400 text-base sm:text-lg mt-1">
-                    Defensive LLM Agent Architecture
+                    Secure AI Agent Defense System
                   </p>
                 </div>
 
@@ -236,7 +236,7 @@ export default function HomePage() {
                 <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4">
                   <div className="flex items-center space-x-2 text-xs font-medium text-slate-400">
                     <Info className="w-4 h-4 text-slate-500" />
-                    <span>Possessed Butler Architecture: Deterministic Hardened Defense.</span>
+                    <span>Kavach Architecture: Deterministic Hardened Defense.</span>
                   </div>
                 </div>
               </div>
@@ -247,7 +247,7 @@ export default function HomePage() {
 
       {/* Global Footer */}
       <footer className="border-t border-slate-800/80 py-4 text-center text-xs font-mono text-slate-500 bg-slate-950">
-        Possessed Butler • Defensive LLM Agent Architecture • SOC Command Center Active
+        Kavach • Secure AI Agent Defense System • SOC Command Center Active
       </footer>
     </div>
   );

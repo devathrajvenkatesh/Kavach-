@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Security Evaluation Engine
+ * Kavach - Security Evaluation Engine
  *
  * Runs automated benchmark evaluation against the expanded 100+ adversarial attack corpus,
  * 20+ benign utility tasks, and regression suites to quantitatively score defensive resilience.

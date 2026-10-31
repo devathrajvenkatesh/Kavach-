@@ -1,5 +1,5 @@
 /**
- * Possessed Butler - Anthropic LLM Provider Stub
+ * Kavach - Anthropic LLM Provider Stub
  *
  * Clean architectural stub for future Anthropic Claude integration.
  * Reads API credentials and model configuration strictly from environment variables.
