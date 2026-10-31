@@ -10,6 +10,7 @@ import { MockLLMProvider } from "./mock";
 import { GeminiLLMProvider } from "./gemini";
 import { AnthropicLLMProvider } from "./anthropic";
 import { OpenAILLMProvider } from "./openai";
+import { GroqLLMProvider } from "./groq";
 import { ConfigurationError } from "./types";
 
 export interface ProviderFactoryOptions {
@@ -48,9 +49,16 @@ export function createLLMProvider(options?: ProviderFactoryOptions): LLMProvider
         modelIdentifier: options?.modelIdentifier,
       });
 
+    case "groq":
+      return new GroqLLMProvider({
+        apiKey: options?.apiKey,
+        modelIdentifier: options?.modelIdentifier,
+      });
+
     default:
       throw new ConfigurationError(
-        `Unknown LLM_PROVIDER "${selected}". Supported options are: mock, gemini, anthropic, openai.`
+        `Unknown LLM_PROVIDER "${selected}". Supported options are: mock, gemini, anthropic, openai, groq.`
       );
   }
 }
+

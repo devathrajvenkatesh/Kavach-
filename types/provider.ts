@@ -7,7 +7,7 @@
 
 import { ToolMetadata } from "./tool";
 
-export type ProviderType = "mock" | "gemini" | "anthropic" | "openai";
+export type ProviderType = "mock" | "gemini" | "anthropic" | "openai" | "groq";
 
 export interface LLMMessage {
   role: "system" | "user" | "assistant" | "tool";

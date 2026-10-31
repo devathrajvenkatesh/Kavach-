@@ -9,6 +9,7 @@ import {
   GeminiLLMProvider,
   AnthropicLLMProvider,
   OpenAILLMProvider,
+  GroqLLMProvider,
   createLLMProvider,
   ConfigurationError,
 } from "../../lib/agent/provider";
@@ -101,6 +102,49 @@ describe("LLM Provider Abstraction", () => {
     });
     assert.equal(provider.providerName, "gemini");
     assert.equal(provider.modelIdentifier, "gemini-3.8-flash");
+  });
+
+  it("GroqLLMProvider throws ConfigurationError if GROQ_API_KEY is missing", () => {
+    delete process.env.GROQ_API_KEY;
+    delete process.env.GROQ_MODEL;
+
+    assert.throws(
+      () => new GroqLLMProvider({ apiKey: "", modelIdentifier: "llama-3.3-70b-versatile" }),
+      (err: unknown) => {
+        assert.ok(err instanceof ConfigurationError);
+        assert.ok(err.message.includes("GROQ_API_KEY"));
+        return true;
+      }
+    );
+  });
+
+  it("GroqLLMProvider throws ConfigurationError if GROQ_MODEL is missing", () => {
+    assert.throws(
+      () => new GroqLLMProvider({ apiKey: "gsk_test_key_123", modelIdentifier: "" }),
+      (err: unknown) => {
+        assert.ok(err instanceof ConfigurationError);
+        assert.ok(err.message.includes("GROQ_MODEL"));
+        return true;
+      }
+    );
+  });
+
+  it("GroqLLMProvider initializes with default llama-3.3-70b-versatile model", () => {
+    delete process.env.GROQ_MODEL;
+    const provider = new GroqLLMProvider({ apiKey: "gsk_test_key_123" });
+    assert.equal(provider.providerName, "groq");
+    assert.equal(provider.modelIdentifier, "llama-3.3-70b-versatile");
+    assert.doesNotThrow(() => provider.reset());
+  });
+
+  it("createLLMProvider creates GroqLLMProvider when providerType is groq", () => {
+    const provider = createLLMProvider({
+      providerType: "groq",
+      apiKey: "gsk_test_key_123",
+      modelIdentifier: "llama-3.1-8b-instant",
+    });
+    assert.equal(provider.providerName, "groq");
+    assert.equal(provider.modelIdentifier, "llama-3.1-8b-instant");
   });
 });
 
