@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import {
   Cpu,
   FlaskConical,
@@ -47,27 +48,39 @@ export function CommandCenter({
         <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-bl from-[#C9A86A]/10 via-[#2E595A]/5 to-transparent rounded-full blur-2xl pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-          <div className="space-y-2 max-w-2xl">
-            {/* Live Operational Status Tag */}
-            <div className="flex items-center space-x-2">
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-mono font-semibold bg-[#EBF1ED] text-[#052326] border border-[#A5B5A9]/50">
-                <span className="w-2 h-2 rounded-full bg-[#2E595A] mr-1.5 animate-pulse" />
-                DEFENSE SYSTEM OPERATIONAL
-              </span>
-              <span className="text-xs font-mono text-[#678882]">
-                • STRICT ENFORCEMENT
-              </span>
+          <div className="flex items-start space-x-5 max-w-2xl">
+            <div className="relative flex-shrink-0 hidden sm:block w-16 h-18 mt-1">
+              <Image
+                src="/kavach-emblem.png"
+                alt="Kavach Shield Emblem"
+                width={80}
+                height={91}
+                className="w-full h-full object-contain filter drop-shadow-[0_4px_16px_rgba(5,35,38,0.12)]"
+                priority
+              />
             </div>
+            <div className="space-y-2">
+              {/* Live Operational Status Tag */}
+              <div className="flex items-center space-x-2">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-mono font-semibold bg-[#EBF1ED] text-[#052326] border border-[#A5B5A9]/50">
+                  <span className="w-2 h-2 rounded-full bg-[#2E595A] mr-1.5 animate-pulse" />
+                  DEFENSE SYSTEM OPERATIONAL
+                </span>
+                <span className="text-xs font-mono text-[#678882]">
+                  • STRICT ENFORCEMENT
+                </span>
+              </div>
 
-            <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[#052326] tracking-tight">
-              Kavach Security Command Center
-            </h1>
+              <h1 className="text-3xl sm:text-4xl font-serif font-bold text-[#052326] tracking-tight">
+                Kavach Security Command Center
+              </h1>
 
-            <p className="text-base text-[#2E595A] leading-relaxed">
-              Intelligent protection for AI agents operating in untrusted environments.
-              Ensures external documents, emails, and web data can provide data, but can{" "}
-              <strong className="text-[#052326] font-semibold">never gain authority</strong>.
-            </p>
+              <p className="text-base text-[#2E595A] leading-relaxed">
+                Intelligent protection for AI agents operating in untrusted environments.
+                Ensures external documents, emails, and web data can provide data, but can{" "}
+                <strong className="text-[#052326] font-semibold">never gain authority</strong>.
+              </p>
+            </div>
           </div>
 
           {/* Quick Action Buttons */}

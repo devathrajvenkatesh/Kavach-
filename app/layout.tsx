@@ -6,7 +6,9 @@ export const metadata: Metadata = {
   description:
     "Kavach is an enterprise AI defense system providing intelligent protection for agents operating in untrusted environments.",
   icons: {
-    icon: "/kavach-logo.svg",
+    icon: "/kavach-emblem.png",
+    shortcut: "/kavach-emblem.png",
+    apple: "/kavach-emblem.png",
   },
 };
 
