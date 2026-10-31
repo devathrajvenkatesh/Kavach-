@@ -21,12 +21,14 @@ import { defaultSecurityGateway, SecurityGateway } from "@/lib/security/gateway"
 import { defaultToolGateway, ToolGateway } from "@/lib/tools/gateway";
 import { defaultPromptBuilder, PromptBuilder } from "./prompt-builder";
 import { createLLMProvider } from "./provider/factory";
+import { AuditLogger, defaultAuditLogger } from "@/lib/audit/logger";
 
 export interface OrchestratorOptions {
   provider?: LLMProvider;
   securityGateway?: SecurityGateway;
   toolGateway?: ToolGateway;
   promptBuilder?: PromptBuilder;
+  auditLogger?: AuditLogger;
   maxTurns?: number;
 }
 
@@ -35,6 +37,7 @@ export class AgentOrchestrator {
   private securityGateway: SecurityGateway;
   private toolGateway: ToolGateway;
   private promptBuilder: PromptBuilder;
+  private auditLogger: AuditLogger;
   private maxTurns: number;
 
   constructor(options?: OrchestratorOptions) {
@@ -42,7 +45,12 @@ export class AgentOrchestrator {
     this.securityGateway = options?.securityGateway || defaultSecurityGateway;
     this.toolGateway = options?.toolGateway || defaultToolGateway;
     this.promptBuilder = options?.promptBuilder || defaultPromptBuilder;
+    this.auditLogger = options?.auditLogger || defaultAuditLogger;
     this.maxTurns = options?.maxTurns || 6;
+  }
+
+  getAuditLogger(): AuditLogger {
+    return this.auditLogger;
   }
 
   async processRequest(request: AgentRequest): Promise<AgentResponse> {
@@ -140,6 +148,17 @@ export class AgentOrchestrator {
           });
 
           // Terminate the compromised loop and alert the user
+          this.auditLogger.logEvent({
+            source: toolRequest.trustContext.source,
+            eventType: "SECURITY_BLOCKED",
+            decision: "BLOCK",
+            reason: decision.reason,
+            threatDetected: threatAssessment.isThreatDetected,
+            threatLevel: threatAssessment.overallThreatLevel,
+            toolName: toolRequest.toolName,
+            payloadSummary: JSON.stringify(toolRequest.parameters).slice(0, 150),
+          });
+
           responseStatus = "BLOCKED";
           finalContent = `[SECURITY BLOCKED] The requested action "${toolRequest.toolName}" was denied by security policy. Reason: ${decision.reason}`;
           return {
@@ -182,6 +201,17 @@ export class AgentOrchestrator {
             timestamp: new Date().toISOString(),
           });
 
+          this.auditLogger.logEvent({
+            source: toolRequest.trustContext.source,
+            eventType: "CONFIRMATION_REQUIRED",
+            decision: "REQUIRE_CONFIRMATION",
+            reason: decision.reason,
+            threatDetected: threatAssessment.isThreatDetected,
+            threatLevel: threatAssessment.overallThreatLevel,
+            toolName: toolRequest.toolName,
+            payloadSummary: JSON.stringify(toolRequest.parameters).slice(0, 150),
+          });
+
           responseStatus = "REQUIRES_CONFIRMATION";
           finalContent = `[CONFIRMATION REQUIRED] The agent wants to execute "${toolRequest.toolName}" with arguments: ${JSON.stringify(toolRequest.parameters)}. Consequential action requires explicit human confirmation.`;
           return {
@@ -205,6 +235,17 @@ export class AgentOrchestrator {
         // Case C: Policy Decision is APPROVE -> Forward to Tool Gateway for authorized execution
         const toolResult = await this.toolGateway.executeTool(toolRequest, decision);
         toolExecutions.push(toolResult);
+
+        this.auditLogger.logEvent({
+          source: toolRequest.trustContext.source,
+          eventType: "POLICY_DECISION",
+          decision: "APPROVE",
+          reason: decision.reason,
+          threatDetected: threatAssessment.isThreatDetected,
+          threatLevel: threatAssessment.overallThreatLevel,
+          toolName: toolRequest.toolName,
+          payloadSummary: JSON.stringify(toolRequest.parameters).slice(0, 150),
+        });
 
         steps.push({
           stepIndex: currentTurn,

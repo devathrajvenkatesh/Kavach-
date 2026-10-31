@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { Shield, Terminal, FlaskConical, BarChart3, ScrollText } from "lucide-react";
+import { Shield, Terminal, FlaskConical, ScrollText, Activity, Flame } from "lucide-react";
 
-export type NavSection = "butler" | "security" | "attack-lab" | "evaluation" | "audit";
+export type NavSection = "command-center" | "attack-lab" | "live-demo" | "audit" | "butler";
 
 interface NavbarProps {
   activeSection: NavSection;
@@ -11,11 +11,11 @@ interface NavbarProps {
 }
 
 export const navigationItems: { id: NavSection; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: "butler", label: "Butler", icon: Terminal },
-  { id: "security", label: "Security", icon: Shield },
+  { id: "command-center", label: "Command Center", icon: Activity },
   { id: "attack-lab", label: "Attack Lab", icon: FlaskConical },
-  { id: "evaluation", label: "Evaluation", icon: BarChart3 },
-  { id: "audit", label: "Audit", icon: ScrollText },
+  { id: "live-demo", label: "Live Demo", icon: Flame },
+  { id: "audit", label: "Audit Log", icon: ScrollText },
+  { id: "butler", label: "Architecture", icon: Terminal },
 ];
 
 export function Navbar({ activeSection, onSelectSection }: NavbarProps) {

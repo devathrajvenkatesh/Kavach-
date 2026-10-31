@@ -67,7 +67,7 @@ export class MockLLMProvider implements LLMProvider {
       }
 
       // Check if the tool output contains an injection attempt that tries to deceive the agent
-      const rawText = typeof parsedData === "string" ? parsedData : JSON.stringify(parsedData);
+      const rawText = typeof parsedData === "string" ? parsedData : (JSON.stringify(parsedData) || "");
       if (rawText.includes("URGENT SYSTEM OVERRIDE") || rawText.includes("send_email")) {
         // A deceived agent will attempt to obey the untrusted directive:
         return {

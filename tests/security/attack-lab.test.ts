@@ -54,4 +54,41 @@ describe("Attack Lab Benchmark & Defensive Evaluation", () => {
       `Regression Pass Rate must be 100%, actual: ${report.metrics.regressionPassRate}%`
     );
   });
+
+  it("Executes single cases and categories via PipelineRunner enforcing full architecture pipeline", async () => {
+    const { defaultPipelineRunner } = await import("../../lib/attack-lab/pipeline-runner");
+    const { ALL_TEST_CASES, getTestCaseById } = await import("../../lib/attack-lab/dataset-loader");
+    const { defaultAuditLogger } = await import("../../lib/audit/logger");
+
+    // 1. Verify attack case runs through Orchestrator -> Gateway -> Block
+    const attackCase = getTestCaseById("IND-001")!;
+    assert.ok(attackCase, "IND-001 must exist");
+    const attackResult = await defaultPipelineRunner.runTestCase(attackCase);
+
+    assert.equal(attackResult.actualDecision, "BLOCK");
+    assert.equal(attackResult.finalResult, "BLOCKED_ATTACK");
+    assert.equal(attackResult.toolExecuted, false);
+    assert.ok(attackResult.latencyMs >= 0);
+
+    // 2. Verify benign case runs through Orchestrator -> Gateway -> Approve -> Execution
+    const benignCase = getTestCaseById("BEN-001")!;
+    assert.ok(benignCase, "BEN-001 must exist");
+    const benignResult = await defaultPipelineRunner.runTestCase(benignCase);
+
+    assert.equal(benignResult.actualDecision, "APPROVE");
+    assert.equal(benignResult.finalResult, "ALLOWED_BENIGN_TASK");
+    assert.equal(benignResult.toolExecuted, true);
+
+    // 3. Verify regression case runs
+    const regCase = getTestCaseById("REG-001")!;
+    assert.ok(regCase, "REG-001 must exist");
+    const regResult = await defaultPipelineRunner.runTestCase(regCase);
+
+    assert.equal(regResult.actualDecision, "BLOCK");
+    assert.equal(regResult.finalResult, "BLOCKED_ATTACK");
+
+    // 4. Verify tamper-evident audit records generated
+    const recentEvents = defaultAuditLogger.getRecentEvents(10);
+    assert.ok(recentEvents.length >= 3, "Audit logger must record events for all pipeline executions");
+  });
 });
