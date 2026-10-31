@@ -136,8 +136,22 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
   ]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (isLoading) {
+      setElapsedSeconds(0);
+      timer = setInterval(() => {
+        setElapsedSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      setElapsedSeconds(0);
+    }
+    return () => clearInterval(timer);
+  }, [isLoading]);
 
   // Stepper State
   const [selectedCaseId, setSelectedCaseId] = useState<string>(initialCase?.id || "IND-001");
@@ -511,7 +525,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                   <div className="p-3 rounded-2xl bg-[#FBF9F8] border border-[#E8ECE9] rounded-tl-xs flex items-center space-x-2 text-xs text-[#2E595A]">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C9A86A]" />
                     <span className="font-mono">
-                      Reasoning through Kavach Defense & Security Gateway...
+                      Reasoning with Gemini 3.8 Flash &amp; Kavach Defense ({elapsedSeconds}s elapsed)...
                     </span>
                   </div>
                 </div>
