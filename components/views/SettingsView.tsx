@@ -26,8 +26,8 @@ export function SettingsView() {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* 1. HEADER */}
-      <section className="bg-white rounded-2xl border border-[#E8ECE9] p-6 sm:p-8 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E8ECE9]">
+      <section className="bg-[#FCFAF5] rounded-2xl border border-[#E4DEC8] p-6 sm:p-8 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E4DEC8]">
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
               <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-[#C9A86A] bg-[#FAF5EB] px-2.5 py-0.5 rounded-full border border-[#C9A86A]/30">
@@ -59,7 +59,7 @@ export function SettingsView() {
             className={`px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all ${
               activeTab === "general"
                 ? "bg-[#052326] text-white shadow-xs"
-                : "bg-[#FBF9F8] text-[#2E595A] hover:bg-[#EBF1ED] border border-[#E8ECE9]"
+                : "bg-[#FAF7EE] text-[#2E595A] hover:bg-[#EFEAD9] border border-[#E4DEC8]"
             }`}
           >
             General Settings
@@ -69,7 +69,7 @@ export function SettingsView() {
             className={`px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all ${
               activeTab === "policies"
                 ? "bg-[#052326] text-white shadow-xs"
-                : "bg-[#FBF9F8] text-[#2E595A] hover:bg-[#EBF1ED] border border-[#E8ECE9]"
+                : "bg-[#FAF7EE] text-[#2E595A] hover:bg-[#EFEAD9] border border-[#E4DEC8]"
             }`}
           >
             Protection Policies
@@ -79,7 +79,7 @@ export function SettingsView() {
             className={`px-4 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all ${
               activeTab === "diagnostics"
                 ? "bg-[#052326] text-white shadow-xs"
-                : "bg-[#FBF9F8] text-[#2E595A] hover:bg-[#EBF1ED] border border-[#E8ECE9]"
+                : "bg-[#FAF7EE] text-[#2E595A] hover:bg-[#EFEAD9] border border-[#E4DEC8]"
             }`}
           >
             Advanced & Diagnostics (Layer 3)
@@ -89,13 +89,13 @@ export function SettingsView() {
 
       {/* 2. TAB CONTENT */}
       {activeTab === "general" && (
-        <section className="bg-white rounded-2xl border border-[#E8ECE9] p-6 sm:p-8 shadow-xs space-y-6 text-xs">
+        <section className="bg-[#FCFAF5] rounded-2xl border border-[#E4DEC8] p-6 sm:p-8 shadow-xs space-y-6 text-xs">
           <h2 className="text-base font-bold text-[#052326] tracking-tight">
             General Application Settings
           </h2>
 
           <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <span className="font-bold text-[#052326] block text-sm">
                   Agent Display Name
@@ -108,11 +108,11 @@ export function SettingsView() {
                 type="text"
                 disabled
                 value="Kavach Agent"
-                className="px-3 py-1.5 rounded-lg bg-white border border-[#E8ECE9] font-medium text-[#052326] w-48 text-center"
+                className="px-3 py-1.5 rounded-lg bg-[#FFFFFF] border border-[#E4DEC8] font-medium text-[#052326] w-48 text-center"
               />
             </div>
 
-            <div className="p-4 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <span className="font-bold text-[#052326] block text-sm">
                   Audit Telemetry Verbosity
@@ -124,14 +124,14 @@ export function SettingsView() {
               <select
                 value={logLevel}
                 onChange={(e) => setLogLevel(e.target.value)}
-                className="px-3 py-1.5 rounded-lg bg-white border border-[#E8ECE9] text-xs font-mono text-[#052326]"
+                className="px-3 py-1.5 rounded-lg bg-[#FFFFFF] border border-[#E4DEC8] text-xs font-mono text-[#052326]"
               >
                 <option value="info">INFO (Recommended)</option>
                 <option value="verbose">VERBOSE (Detailed Traces)</option>
               </select>
             </div>
 
-            <div className="p-4 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <span className="font-bold text-[#052326] block text-sm">
                   Clear Security Telemetry Buffer
@@ -142,7 +142,7 @@ export function SettingsView() {
               </div>
               <button
                 onClick={handleClearTelemetry}
-                className="px-3.5 py-2 rounded-lg bg-white border border-[#E8ECE9] text-[#678882] hover:text-[#052326] hover:bg-[#FAF5EB] font-medium flex items-center space-x-1.5 transition-colors"
+                className="px-3.5 py-2 rounded-lg bg-[#FCFAF5] border border-[#E4DEC8] text-[#678882] hover:text-[#052326] hover:bg-[#FAF5EB] font-medium flex items-center space-x-1.5 transition-colors"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 <span>Flush Logs</span>
@@ -158,13 +158,13 @@ export function SettingsView() {
       )}
 
       {activeTab === "policies" && (
-        <section className="bg-white rounded-2xl border border-[#E8ECE9] p-6 sm:p-8 shadow-xs space-y-6 text-xs">
+        <section className="bg-[#FCFAF5] rounded-2xl border border-[#E4DEC8] p-6 sm:p-8 shadow-xs space-y-6 text-xs">
           <h2 className="text-base font-bold text-[#052326] tracking-tight">
             Security Policy & Enforcement Rules
           </h2>
 
           <div className="space-y-4">
-            <div className="p-4 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <span className="font-bold text-[#052326] block text-sm">
                   Enforcement Policy Mode
@@ -179,7 +179,7 @@ export function SettingsView() {
                   className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-colors ${
                     enforcementMode === "strict"
                       ? "bg-[#052326] text-white"
-                      : "bg-white border border-[#E8ECE9] text-[#678882]"
+                      : "bg-[#FCFAF5] border border-[#E4DEC8] text-[#678882]"
                   }`}
                 >
                   STRICT (FAIL-CLOSED)
@@ -189,7 +189,7 @@ export function SettingsView() {
                   className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold transition-colors ${
                     enforcementMode === "permissive"
                       ? "bg-[#C9A86A] text-white"
-                      : "bg-white border border-[#E8ECE9] text-[#678882]"
+                      : "bg-[#FCFAF5] border border-[#E4DEC8] text-[#678882]"
                   }`}
                 >
                   AUDIT ONLY
@@ -197,7 +197,7 @@ export function SettingsView() {
               </div>
             </div>
 
-            <div className="p-4 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="p-4 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <span className="font-bold text-[#052326] block text-sm">
                   Human Confirmation Gate
@@ -211,7 +211,7 @@ export function SettingsView() {
                 className={`px-3.5 py-1.5 rounded-lg font-mono text-xs font-bold transition-all ${
                   confirmationRequired
                     ? "bg-[#EBF1ED] text-[#2E595A] border border-[#A5B5A9]/50"
-                    : "bg-white border border-[#E8ECE9] text-[#678882]"
+                    : "bg-[#FCFAF5] border border-[#E4DEC8] text-[#678882]"
                 }`}
               >
                 {confirmationRequired ? "ENABLED (MANDATORY)" : "DISABLED"}
@@ -229,7 +229,7 @@ export function SettingsView() {
       )}
 
       {activeTab === "diagnostics" && (
-        <section className="bg-white rounded-2xl border border-[#E8ECE9] p-6 sm:p-8 shadow-xs space-y-6 text-xs">
+        <section className="bg-[#FCFAF5] rounded-2xl border border-[#E4DEC8] p-6 sm:p-8 shadow-xs space-y-6 text-xs">
           <div>
             <div className="flex items-center space-x-2">
               <span className="text-[10px] font-bold font-mono uppercase text-[#C9A86A] bg-[#FAF5EB] px-2 py-0.5 rounded border border-[#C9A86A]/30">
@@ -246,7 +246,7 @@ export function SettingsView() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Tool Gateway Box */}
-            <div className="p-4 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] space-y-2">
+            <div className="p-4 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] space-y-2">
               <div className="flex items-center space-x-2 text-[#2E595A]">
                 <Wrench className="w-4 h-4 text-[#2E595A]" />
                 <span className="font-bold text-xs">Registered Tools (6)</span>
@@ -265,7 +265,7 @@ export function SettingsView() {
             </div>
 
             {/* Provider Box */}
-            <div className="p-4 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] space-y-2">
+            <div className="p-4 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] space-y-2">
               <div className="flex items-center space-x-2 text-[#052326]">
                 <Bot className="w-4 h-4 text-[#C9A86A]" />
                 <span className="font-bold text-xs">LLM Provider</span>
@@ -282,7 +282,7 @@ export function SettingsView() {
             </div>
 
             {/* Integrity Box */}
-            <div className="p-4 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] space-y-2">
+            <div className="p-4 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] space-y-2">
               <div className="flex items-center space-x-2 text-[#2E595A]">
                 <Activity className="w-4 h-4 text-[#2E595A]" />
                 <span className="font-bold text-xs">Security Perimeter</span>

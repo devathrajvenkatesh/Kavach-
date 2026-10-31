@@ -10,8 +10,8 @@ export function ToolsView() {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* Header */}
-      <section className="bg-white rounded-2xl border border-[#E8ECE9] p-6 shadow-sm">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E8ECE9]">
+      <section className="bg-[#FCFAF5] rounded-2xl border border-[#E4DEC8] p-6 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E4DEC8]">
           <div>
             <div className="flex items-center space-x-2">
               <span className="text-[10px] font-bold tracking-[0.16em] uppercase text-[#678882]">
@@ -55,9 +55,9 @@ export function ToolsView() {
           return (
             <div
               key={t.name}
-              className="p-5 rounded-2xl bg-white border border-[#E8ECE9] shadow-sm hover:border-[#A5B5A9] transition-all space-y-3"
+              className="p-5 rounded-2xl bg-[#FCFAF5] border border-[#E4DEC8] shadow-sm hover:border-[#A5B5A9] transition-all space-y-3"
             >
-              <div className="flex items-center justify-between pb-2 border-b border-[#E8ECE9]">
+              <div className="flex items-center justify-between pb-2 border-b border-[#E4DEC8]">
                 <div className="flex items-center space-x-2">
                   <div className="w-7 h-7 rounded-lg bg-[#052326] text-[#C9A86A] flex items-center justify-center font-mono font-bold text-xs">
                     <FileCode className="w-3.5 h-3.5" />
@@ -92,7 +92,7 @@ export function ToolsView() {
               </p>
 
               {/* Parameters Breakdown */}
-              <div className="p-3 rounded-lg bg-[#FBF9F8] border border-[#E8ECE9] space-y-1.5 text-xs">
+              <div className="p-3 rounded-lg bg-[#FAF7EE] border border-[#E4DEC8] space-y-1.5 text-xs">
                 <span className="text-[10px] font-mono uppercase font-bold text-[#678882] tracking-wider block">
                   Parameters Schema:
                 </span>

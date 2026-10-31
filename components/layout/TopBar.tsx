@@ -85,7 +85,7 @@ export function TopBar({
   const meta = PAGE_META[activeKey] || PAGE_META.overview;
 
   return (
-    <header className="h-16 bg-white border-b border-[#E8ECE9] px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(5,35,38,0.02)]">
+    <header className="h-16 bg-[#FAF7EE] border-b border-[#E4DEC8] px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-[0_1px_3px_rgba(5,35,38,0.02)]">
       {/* Left: Clean Page Title & Supporting Subtext */}
       <div>
         <h1 className="text-base font-bold text-[#052326] tracking-tight flex items-center space-x-2">
@@ -107,7 +107,7 @@ export function TopBar({
         </div>
 
         {/* Layer 1: Agent Status */}
-        <div className="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#FBF9F8] border border-[#E8ECE9] text-xs text-[#2E595A]">
+        <div className="hidden sm:flex items-center space-x-1.5 px-3 py-1 rounded-full bg-[#FCFAF5] border border-[#E4DEC8] text-xs text-[#2E595A]">
           <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
           <span className="text-[11px] font-medium text-[#2E595A]">
             Agent Online
@@ -117,7 +117,7 @@ export function TopBar({
         {/* Notifications Icon Button */}
         <button
           onClick={onOpenNotifications}
-          className="relative p-2 rounded-lg text-[#678882] hover:text-[#052326] hover:bg-[#F7F9F8] transition-colors"
+          className="relative p-2 rounded-lg text-[#678882] hover:text-[#052326] hover:bg-[#EFECE0] transition-colors"
           title="Security Alerts"
         >
           <Bell className="w-4 h-4" />
@@ -127,7 +127,7 @@ export function TopBar({
         </button>
 
         {/* User Profile Avatar */}
-        <div className="flex items-center space-x-2 pl-2 border-l border-[#E8ECE9]">
+        <div className="flex items-center space-x-2 pl-2 border-l border-[#E4DEC8]">
           <div className="w-7 h-7 rounded-full bg-[#052326] text-white flex items-center justify-center text-xs font-semibold">
             <User className="w-3.5 h-3.5" />
           </div>

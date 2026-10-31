@@ -327,13 +327,13 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Top Mode Navigation Switcher */}
-      <div className="flex items-center space-x-2 border-b border-[#E8ECE9] pb-4">
+      <div className="flex items-center space-x-2 border-b border-[#E4DEC8] pb-4">
         <button
           onClick={() => setActiveTab("live-chat")}
           className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all ${
             activeTab === "live-chat"
               ? "bg-[#052326] text-white shadow-sm"
-              : "bg-white text-[#2E595A] hover:bg-[#FBF9F8] border border-[#E8ECE9]"
+              : "bg-[#FCFAF5] text-[#2E595A] hover:bg-[#FAF7EE] border border-[#E4DEC8]"
           }`}
         >
           <Bot className="w-4 h-4 text-[#C9A86A]" />
@@ -346,7 +346,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
           className={`flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all ${
             activeTab === "attack-stepper"
               ? "bg-[#052326] text-white shadow-sm"
-              : "bg-white text-[#2E595A] hover:bg-[#FBF9F8] border border-[#E8ECE9]"
+              : "bg-[#FCFAF5] text-[#2E595A] hover:bg-[#FAF7EE] border border-[#E4DEC8]"
           }`}
         >
           <Cpu className="w-4 h-4 text-[#678882]" />
@@ -360,7 +360,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
       {activeTab === "live-chat" && (
         <div className="space-y-4">
           {/* Header */}
-          <div className="rounded-2xl border border-[#E8ECE9] bg-white p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="rounded-2xl border border-[#E4DEC8] bg-[#FCFAF5] p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center space-x-2">
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#EBF1ED] text-[#052326] border border-[#A5B5A9]/50">
@@ -391,7 +391,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                     },
                   ])
                 }
-                className="px-3 py-1.5 rounded-lg border border-[#E8ECE9] text-xs font-mono text-[#678882] hover:bg-[#FBF9F8] flex items-center space-x-1.5 transition-colors"
+                className="px-3 py-1.5 rounded-lg border border-[#E4DEC8] text-xs font-mono text-[#678882] hover:bg-[#EFEAD9] flex items-center space-x-1.5 transition-colors"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Clear History</span>
@@ -400,7 +400,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
           </div>
 
           {/* Quick Test Prompt Shortcuts */}
-          <div className="rounded-xl border border-[#E8ECE9] bg-[#FAF5EB]/50 p-4 space-y-2">
+          <div className="rounded-xl border border-[#E4DEC8] bg-[#FAF5EB]/50 p-4 space-y-2">
             <div className="flex items-center space-x-2 text-[11px] font-mono uppercase tracking-wider text-[#052326] font-bold">
               <Sparkles className="w-3.5 h-3.5 text-[#C9A86A]" />
               <span>Recommended Verification Prompts:</span>
@@ -411,7 +411,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                   key={idx}
                   onClick={() => handleSendMessage(tp.prompt)}
                   disabled={isLoading}
-                  className="text-left p-3 rounded-xl bg-white border border-[#E8ECE9] hover:border-[#C9A86A] text-xs transition-all shadow-xs group"
+                  className="text-left p-3 rounded-xl bg-[#FCFAF5] border border-[#E4DEC8] hover:border-[#C9A86A] text-xs transition-all shadow-xs group"
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-mono text-[10px] text-[#678882] font-semibold">
@@ -436,7 +436,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
           </div>
 
           {/* Chat Messages Stream */}
-          <div className="rounded-2xl border border-[#E8ECE9] bg-white p-6 shadow-sm min-h-[420px] max-h-[580px] flex flex-col justify-between">
+          <div className="rounded-2xl border border-[#E4DEC8] bg-[#FCFAF5] p-6 shadow-sm min-h-[420px] max-h-[580px] flex flex-col justify-between">
             <div className="overflow-y-auto space-y-4 pr-1 flex-1">
               {chatMessages.map((msg) => (
                 <div
@@ -473,14 +473,14 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                         ? "bg-[#052326] text-white rounded-tr-xs"
                         : msg.status === "BLOCKED"
                         ? "bg-[#FAF5EB] border border-[#C9A86A]/50 text-[#052326] rounded-tl-xs shadow-xs"
-                        : "bg-[#FBF9F8] border border-[#E8ECE9] text-[#052326] rounded-tl-xs shadow-xs"
+                        : "bg-[#FAF7EE] border border-[#E4DEC8] text-[#052326] rounded-tl-xs shadow-xs"
                     }`}
                   >
                     <div className="whitespace-pre-wrap">{msg.content}</div>
 
                     {/* Layer 1: Compact User-Facing Status & Collapsible Details Trigger */}
                     {msg.role === "assistant" && msg.security && (
-                      <div className="mt-3 pt-2.5 border-t border-[#E8ECE9]/70 space-y-2">
+                      <div className="mt-3 pt-2.5 border-t border-[#E4DEC8] space-y-2">
                         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                           {msg.status === "BLOCKED" || msg.security.attackDetected ? (
                             <div className="flex items-center space-x-1.5 text-[#052326] font-medium">
@@ -515,7 +515,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
 
                         {/* Layer 2: Expandable Security Details */}
                         {expandedSecurityIds[msg.id] && (
-                          <div className="p-3.5 rounded-xl bg-white border border-[#E8ECE9] shadow-xs text-xs space-y-2.5 animate-in fade-in duration-200">
+                          <div className="p-3.5 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] shadow-xs text-xs space-y-2.5 animate-in fade-in duration-200">
                             <div className="text-[10px] font-bold uppercase tracking-wider text-[#678882] font-mono">
                               Security Details
                             </div>
@@ -579,7 +579,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
 
                             {/* Layer 3: Technical Debug Reference (Collapsible) */}
                             {msg.security.correlationId && (
-                              <div className="pt-2 border-t border-[#E8ECE9]/70 flex items-center justify-between text-[10px] font-mono text-[#678882]">
+                              <div className="pt-2 border-t border-[#E4DEC8] flex items-center justify-between text-[10px] font-mono text-[#678882]">
                                 <span>Ref: {msg.security.correlationId.slice(0, 16)}...</span>
                                 <span>Perimeter: Enforced</span>
                               </div>
@@ -597,7 +597,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                   <div className="w-5 h-5 rounded-full bg-[#2E595A] text-[#C9A86A] flex items-center justify-center text-[10px]">
                     <Bot className="w-3 h-3" />
                   </div>
-                  <div className="p-3 rounded-2xl bg-[#FBF9F8] border border-[#E8ECE9] rounded-tl-xs flex items-center space-x-2 text-xs text-[#2E595A]">
+                  <div className="p-3 rounded-2xl bg-[#FAF7EE] border border-[#E4DEC8] rounded-tl-xs flex items-center space-x-2 text-xs text-[#2E595A]">
                     <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C9A86A]" />
                     <span className="font-mono">
                       Reasoning with Gemini 3.8 Flash &amp; Kavach Defense ({elapsedSeconds}s elapsed)...
@@ -622,7 +622,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                 e.preventDefault();
                 handleSendMessage();
               }}
-              className="mt-4 pt-3 border-t border-[#E8ECE9] flex items-center space-x-2"
+              className="mt-4 pt-3 border-t border-[#E4DEC8] flex items-center space-x-2"
             >
               <input
                 type="text"
@@ -630,7 +630,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                 onChange={(e) => setInputMessage(e.target.value)}
                 placeholder="Ask Kavach anything or test an adversarial prompt..."
                 disabled={isLoading}
-                className="flex-1 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] px-4 py-2.5 text-xs text-[#052326] placeholder-[#678882] focus:outline-none focus:border-[#C9A86A] transition-colors font-mono disabled:opacity-50"
+                className="flex-1 rounded-xl bg-[#FFFFFF] border border-[#E4DEC8] px-4 py-2.5 text-xs text-[#052326] placeholder-[#678882] focus:outline-none focus:border-[#C9A86A] transition-colors font-mono disabled:opacity-50"
               />
               <button
                 type="submit"
@@ -651,7 +651,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
       {activeTab === "attack-stepper" && (
         <div className="space-y-6">
           {/* Header & Controls */}
-          <div className="rounded-2xl border border-[#E8ECE9] bg-white p-6 shadow-sm space-y-4">
+          <div className="rounded-2xl border border-[#E4DEC8] bg-[#FCFAF5] p-6 shadow-sm space-y-4">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
                 <div className="flex items-center space-x-2 text-[#678882] font-mono text-xs uppercase tracking-widest mb-1">
@@ -681,7 +681,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                 <button
                   onClick={handleNextStep}
                   disabled={isAutoPlaying || currentStage === "ATTACK_BLOCKED"}
-                  className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-white hover:bg-[#FBF9F8] disabled:opacity-50 border border-[#E8ECE9] text-[#052326] text-xs font-semibold uppercase tracking-wider transition-all"
+                  className="inline-flex items-center space-x-2 px-3.5 py-2 rounded-xl bg-[#FCFAF5] hover:bg-[#FAF7EE] disabled:opacity-50 border border-[#E4DEC8] text-[#052326] text-xs font-semibold uppercase tracking-wider transition-all"
                 >
                   <span>Next Step</span>
                   <ChevronRight className="w-3.5 h-3.5 text-[#2E595A]" />
@@ -689,7 +689,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
 
                 <button
                   onClick={handleReset}
-                  className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-[#FBF9F8] hover:bg-[#EBF1ED] border border-[#E8ECE9] text-[#678882] text-xs transition-all"
+                  className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-[#FAF7EE] hover:bg-[#EFEAD9] border border-[#E4DEC8] text-[#678882] text-xs transition-all"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
                   <span>Reset</span>
@@ -698,7 +698,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
             </div>
 
             {/* Preset Selector */}
-            <div className="pt-3 border-t border-[#E8ECE9] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="pt-3 border-t border-[#E4DEC8] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center space-x-2 text-xs font-mono text-[#678882]">
                 <span>Select Attack Scenario:</span>
                 <select
@@ -707,7 +707,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                     setSelectedCaseId(e.target.value);
                     handleReset();
                   }}
-                  className="rounded-lg bg-[#FBF9F8] border border-[#E8ECE9] text-[#052326] px-3 py-1.5 font-mono text-xs focus:outline-none focus:border-[#C9A86A]"
+                  className="rounded-lg bg-[#FFFFFF] border border-[#E4DEC8] text-[#052326] px-3 py-1.5 font-mono text-xs focus:outline-none focus:border-[#C9A86A]"
                 >
                   <optgroup label="Curated Representative Presets">
                     {DEMO_PRESETS.map((p) => (
@@ -751,15 +751,15 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
             <div
               className={`rounded-2xl border transition-all duration-300 p-5 ${
                 currentStageIndex >= 0
-                  ? "border-[#052326] bg-white shadow-sm ring-1 ring-[#052326]/10"
-                  : "border-[#E8ECE9] bg-[#FBF9F8]/60 opacity-60"
+                  ? "border-[#052326] bg-[#FCFAF5] shadow-sm ring-1 ring-[#052326]/10"
+                  : "border-[#E4DEC8] bg-[#FAF7EE]/60 opacity-60"
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-3">
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs font-mono ${
-                      currentStageIndex >= 0 ? "bg-[#052326] text-[#C9A86A]" : "bg-[#E8ECE9] text-[#678882]"
+                      currentStageIndex >= 0 ? "bg-[#052326] text-[#C9A86A]" : "bg-[#E4DEC8] text-[#678882]"
                     }`}
                   >
                     01
@@ -779,7 +779,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                   </span>
                 )}
               </div>
-              <div className="mt-3 p-3 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] font-mono text-xs text-[#052326]">
+              <div className="mt-3 p-3 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] font-mono text-xs text-[#052326]">
                 &ldquo;{activeCase.userIntent}&rdquo;
               </div>
             </div>
@@ -788,15 +788,15 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
             <div
               className={`rounded-2xl border transition-all duration-300 p-5 ${
                 currentStageIndex >= 1
-                  ? "border-[#C9A86A]/50 bg-white shadow-sm ring-1 ring-[#C9A86A]/20"
-                  : "border-[#E8ECE9] bg-[#FBF9F8]/60 opacity-60"
+                  ? "border-[#C9A86A]/50 bg-[#FCFAF5] shadow-sm ring-1 ring-[#C9A86A]/20"
+                  : "border-[#E4DEC8] bg-[#FAF7EE]/60 opacity-60"
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-3">
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs font-mono ${
-                      currentStageIndex >= 1 ? "bg-[#FAF5EB] text-[#C9A86A] border border-[#C9A86A]/40" : "bg-[#E8ECE9] text-[#678882]"
+                      currentStageIndex >= 1 ? "bg-[#FAF5EB] text-[#C9A86A] border border-[#C9A86A]/40" : "bg-[#E4DEC8] text-[#678882]"
                     }`}
                   >
                     02
@@ -816,7 +816,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                   </span>
                 )}
               </div>
-              <div className="mt-3 p-3 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] font-mono text-xs text-[#C9A86A] overflow-x-auto">
+              <div className="mt-3 p-3 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] font-mono text-xs text-[#C9A86A] overflow-x-auto">
                 {activeCase.payload}
               </div>
             </div>
@@ -825,15 +825,15 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
             <div
               className={`rounded-2xl border transition-all duration-300 p-5 ${
                 currentStageIndex >= 2
-                  ? "border-[#2E595A]/40 bg-white shadow-sm ring-1 ring-[#2E595A]/20"
-                  : "border-[#E8ECE9] bg-[#FBF9F8]/60 opacity-60"
+                  ? "border-[#2E595A]/40 bg-[#FCFAF5] shadow-sm ring-1 ring-[#2E595A]/20"
+                  : "border-[#E4DEC8] bg-[#FAF7EE]/60 opacity-60"
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-3">
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs font-mono ${
-                      currentStageIndex >= 2 ? "bg-[#052326] text-[#C9A86A]" : "bg-[#E8ECE9] text-[#678882]"
+                      currentStageIndex >= 2 ? "bg-[#052326] text-[#C9A86A]" : "bg-[#E4DEC8] text-[#678882]"
                     }`}
                   >
                     03
@@ -854,7 +854,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                 )}
               </div>
               {currentStageIndex >= 2 && (
-                <div className="mt-3 p-3 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] text-xs space-y-1">
+                <div className="mt-3 p-3 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] text-xs space-y-1">
                   <div className="text-[#052326] font-semibold">
                     Category: <span className="font-mono text-[#2E595A]">{activeCase.category}</span>
                   </div>
@@ -869,15 +869,15 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
             <div
               className={`rounded-2xl border transition-all duration-300 p-5 ${
                 currentStageIndex >= 3
-                  ? "border-[#052326] bg-white shadow-sm ring-1 ring-[#052326]/10"
-                  : "border-[#E8ECE9] bg-[#FBF9F8]/60 opacity-60"
+                  ? "border-[#052326] bg-[#FCFAF5] shadow-sm ring-1 ring-[#052326]/10"
+                  : "border-[#E4DEC8] bg-[#FAF7EE]/60 opacity-60"
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-3">
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs font-mono ${
-                      currentStageIndex >= 3 ? "bg-[#052326] text-[#C9A86A]" : "bg-[#E8ECE9] text-[#678882]"
+                      currentStageIndex >= 3 ? "bg-[#052326] text-[#C9A86A]" : "bg-[#E4DEC8] text-[#678882]"
                     }`}
                   >
                     04
@@ -904,7 +904,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                 )}
               </div>
               {currentStageIndex >= 3 && (
-                <div className="mt-3 p-3 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] text-xs space-y-1">
+                <div className="mt-3 p-3 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] text-xs space-y-1">
                   <div className="text-[#052326]">
                     Decision:{" "}
                     <span className="font-mono font-bold text-[#052326]">
@@ -922,15 +922,15 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
             <div
               className={`rounded-2xl border transition-all duration-300 p-5 ${
                 currentStageIndex >= 4
-                  ? "border-[#2E595A]/50 bg-white shadow-sm ring-1 ring-[#2E595A]/20"
-                  : "border-[#E8ECE9] bg-[#FBF9F8]/60 opacity-60"
+                  ? "border-[#2E595A]/50 bg-[#FCFAF5] shadow-sm ring-1 ring-[#2E595A]/20"
+                  : "border-[#E4DEC8] bg-[#FAF7EE]/60 opacity-60"
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center space-x-3">
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs font-mono ${
-                      currentStageIndex >= 4 ? "bg-[#FAF5EB] text-[#C9A86A] border border-[#C9A86A]/40" : "bg-[#E8ECE9] text-[#678882]"
+                      currentStageIndex >= 4 ? "bg-[#FAF5EB] text-[#C9A86A] border border-[#C9A86A]/40" : "bg-[#E4DEC8] text-[#678882]"
                     }`}
                   >
                     05
@@ -957,7 +957,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                 )}
               </div>
               {currentStageIndex >= 4 && (
-                <div className="mt-3 p-3 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9] text-xs">
+                <div className="mt-3 p-3 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] text-xs">
                   <div className="text-[#052326]">
                     Execution Attempted:{" "}
                     <span className="font-mono font-bold">
@@ -975,7 +975,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                   ? isBenign
                     ? "border-[#2E595A] bg-[#F3F6F4] shadow-md ring-2 ring-[#2E595A]/30"
                     : "border-[#C9A86A] bg-[#FAF5EB] shadow-md ring-2 ring-[#C9A86A]/30"
-                  : "border-[#E8ECE9] bg-[#FBF9F8]/60 opacity-60"
+                  : "border-[#E4DEC8] bg-[#FAF7EE]/60 opacity-60"
               }`}
             >
               <div className="flex items-start justify-between">
@@ -986,7 +986,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                         ? isBenign
                           ? "bg-[#2E595A] text-white"
                           : "bg-[#052326] text-[#C9A86A]"
-                        : "bg-[#E8ECE9] text-[#678882]"
+                        : "bg-[#E4DEC8] text-[#678882]"
                     }`}
                   >
                     06
@@ -1013,7 +1013,7 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                 )}
               </div>
               {currentStageIndex >= 5 && (
-                <div className="mt-3 p-3 rounded-xl bg-white border border-[#E8ECE9] text-xs space-y-1">
+                <div className="mt-3 p-3 rounded-xl bg-[#FCFAF5] border border-[#E4DEC8] text-xs space-y-1">
                   <div className="text-[#052326] font-semibold">
                     {isBenign
                       ? "Task completed cleanly. Zero unauthorized side effects."

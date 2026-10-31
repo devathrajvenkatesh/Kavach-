@@ -56,7 +56,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#FBF9F8] text-[#052326] font-sans antialiased selection:bg-[#C9A86A]/30">
+    <div className="min-h-screen flex bg-[#F7F4EA] text-[#052326] font-sans antialiased selection:bg-[#C9A86A]/30">
       {/* 1. Left Sidebar (Streamlined Enterprise Navigation) */}
       <Sidebar activeKey={activeKey} onSelectKey={setActiveKey} />
 

@@ -326,7 +326,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
   return (
     <div className="space-y-6">
       {/* 1. Header & Actions */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-[#E2E8E5] shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[#FCFAF5] p-6 rounded-2xl border border-[#E4DEC8] shadow-sm">
         <div>
           <div className="flex items-center gap-3">
             <div className="p-2.5 bg-[#052326] text-[#C9A86A] rounded-xl shadow-sm">
@@ -355,7 +355,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
           <button
             onClick={handleLoadDemoSamples}
             disabled={isProcessingUpload}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-[#F4F6F4] text-[#052326] hover:bg-[#E8ECE9] active:scale-[0.98] transition-all rounded-xl font-medium text-sm border border-[#D3DDD7]"
+            className="flex items-center gap-2 px-3.5 py-2.5 bg-[#FAF7EE] text-[#052326] hover:bg-[#EFEAD9] active:scale-[0.98] transition-all rounded-xl font-medium text-sm border border-[#E4DEC8]"
             title="Populates with realistic test files for quick demo"
           >
             <Sparkles className="w-4 h-4 text-[#C9A86A]" />
@@ -385,7 +385,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
               className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all ${
                 isActive
                   ? "bg-[#052326] text-white border-[#052326] shadow-sm"
-                  : "bg-white text-[#052326] border-[#E2E8E5] hover:border-[#678882]/40 hover:bg-[#F9FBFA]"
+                  : "bg-[#FCFAF5] text-[#052326] border-[#E4DEC8] hover:border-[#678882]/40 hover:bg-[#FAF7EE]"
               }`}
             >
               <div className="flex items-center gap-2.5 min-w-0">
@@ -398,7 +398,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
               </div>
               <span
                 className={`text-xs px-2 py-0.5 rounded-full font-mono shrink-0 ${
-                  isActive ? "bg-white/20 text-white" : "bg-[#F4F6F4] text-[#678882]"
+                  isActive ? "bg-white/20 text-white" : "bg-[#FAF7EE] text-[#678882]"
                 }`}
               >
                 {folderCounts[folderName]}
@@ -409,7 +409,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
       </div>
 
       {/* 3. Search & Filters Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-[#E2E8E5]">
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-[#FCFAF5] p-3.5 rounded-xl border border-[#E4DEC8]">
         {/* Search */}
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-[#678882] absolute left-3 top-1/2 -translate-y-1/2" />
@@ -418,7 +418,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search files by name, type, or threat..."
-            className="w-full pl-9 pr-4 py-1.5 text-sm bg-[#F9FBFA] border border-[#E2E8E5] rounded-lg text-[#052326] placeholder-[#678882]/60 focus:outline-none focus:ring-1 focus:ring-[#052326] focus:border-[#052326]"
+            className="w-full pl-9 pr-4 py-1.5 text-sm bg-[#FFFFFF] border border-[#E4DEC8] rounded-lg text-[#052326] placeholder-[#678882]/60 focus:outline-none focus:ring-1 focus:ring-[#052326] focus:border-[#052326]"
           />
         </div>
 
@@ -431,7 +431,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
               className={`px-3 py-1 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
                 statusFilter === st
                   ? "bg-[#052326] text-white"
-                  : "bg-[#F4F6F4] text-[#678882] hover:bg-[#E8ECE9]"
+                  : "bg-[#FAF7EE] text-[#678882] hover:bg-[#EFEAD9]"
               }`}
             >
               {st === "ALL" ? "All Status" : st.replace("_", " ")}
@@ -440,11 +440,11 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
         </div>
 
         {/* Sort & View Mode */}
-        <div className="flex items-center gap-2 border-t md:border-t-0 md:border-l border-[#E2E8E5] pt-2 md:pt-0 md:pl-3">
+        <div className="flex items-center gap-2 border-t md:border-t-0 md:border-l border-[#E4DEC8] pt-2 md:pt-0 md:pl-3">
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-            className="text-xs bg-[#F9FBFA] border border-[#E2E8E5] rounded-lg px-2.5 py-1.5 text-[#052326] focus:outline-none"
+            className="text-xs bg-[#FAF7EE] border border-[#E4DEC8] rounded-lg px-2.5 py-1.5 text-[#052326] focus:outline-none"
           >
             <option value="date">Sort: Date Added</option>
             <option value="name">Sort: Name (A-Z)</option>
@@ -452,11 +452,11 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
             <option value="status">Sort: Security</option>
           </select>
 
-          <div className="flex items-center border border-[#E2E8E5] rounded-lg overflow-hidden">
+          <div className="flex items-center border border-[#E4DEC8] rounded-lg overflow-hidden">
             <button
               onClick={() => setViewMode("list")}
               className={`p-1.5 transition-colors ${
-                viewMode === "list" ? "bg-[#052326] text-white" : "bg-white text-[#678882] hover:bg-[#F4F6F4]"
+                viewMode === "list" ? "bg-[#052326] text-white" : "bg-[#FCFAF5] text-[#678882] hover:bg-[#FAF7EE]"
               }`}
               title="List View"
             >
@@ -465,7 +465,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
             <button
               onClick={() => setViewMode("grid")}
               className={`p-1.5 transition-colors ${
-                viewMode === "grid" ? "bg-[#052326] text-white" : "bg-white text-[#678882] hover:bg-[#F4F6F4]"
+                viewMode === "grid" ? "bg-[#052326] text-white" : "bg-[#FCFAF5] text-[#678882] hover:bg-[#FAF7EE]"
               }`}
               title="Grid View"
             >
@@ -478,7 +478,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
       {/* 4. Files List or Grid */}
       {filteredFiles.length === 0 ? (
         /* Empty State */
-        <div className="bg-white rounded-2xl border border-dashed border-[#D3DDD7] p-12 text-center">
+        <div className="bg-[#FCFAF5] rounded-2xl border border-dashed border-[#E4DEC8] p-12 text-center">
           <div className="w-16 h-16 bg-[#EBF1ED] text-[#2E595A] rounded-2xl flex items-center justify-center mx-auto mb-4">
             <ShieldCheck className="w-8 h-8 text-[#2E595A]" />
           </div>
@@ -499,7 +499,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
             <button
               onClick={handleLoadDemoSamples}
               disabled={isProcessingUpload}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#F4F6F4] text-[#052326] hover:bg-[#E8ECE9] transition-all rounded-xl font-medium text-sm border border-[#D3DDD7]"
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#FAF7EE] text-[#052326] hover:bg-[#EFEAD9] transition-all rounded-xl font-medium text-sm border border-[#E4DEC8]"
             >
               <Sparkles className="w-4 h-4 text-[#C9A86A]" />
               Load Demo Samples
@@ -508,10 +508,10 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
         </div>
       ) : viewMode === "list" ? (
         /* List / Table View */
-        <div className="bg-white rounded-2xl border border-[#E2E8E5] overflow-hidden shadow-sm">
+        <div className="bg-[#FCFAF5] rounded-2xl border border-[#E4DEC8] overflow-hidden shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-[#F9FBFA] border-b border-[#E2E8E5] text-xs font-semibold text-[#678882]">
+              <thead className="bg-[#FAF7EE] border-b border-[#E4DEC8] text-xs font-semibold text-[#678882]">
                 <tr>
                   <th className="py-3 px-4">Name</th>
                   <th className="py-3 px-4">Type</th>
@@ -521,7 +521,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E2E8E5]">
+              <tbody className="divide-y divide-[#E4DEC8]">
                 {filteredFiles.map((file) => {
                   const isSelected = selectedFile?.id === file.id;
                   return (
@@ -531,7 +531,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
                       className={`cursor-pointer transition-colors group ${
                         isSelected
                           ? "bg-[#EBF1ED]/70"
-                          : "hover:bg-[#F9FBFA]"
+                          : "hover:bg-[#FAF7EE]"
                       }`}
                     >
                       <td className="py-3.5 px-4">
@@ -569,7 +569,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
                               e.stopPropagation();
                               setSelectedFile(file);
                             }}
-                            className="p-1.5 text-[#678882] hover:text-[#052326] hover:bg-[#E8ECE9] rounded-lg transition-colors"
+                            className="p-1.5 text-[#678882] hover:text-[#052326] hover:bg-[#EFEAD9] rounded-lg transition-colors"
                             title="View security details"
                           >
                             <Eye className="w-4 h-4" />
@@ -599,15 +599,15 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
               <div
                 key={file.id}
                 onClick={() => setSelectedFile(file)}
-                className={`bg-white p-4 rounded-xl border transition-all cursor-pointer group flex flex-col justify-between ${
+                className={`bg-[#FCFAF5] p-4 rounded-xl border transition-all cursor-pointer group flex flex-col justify-between ${
                   isSelected
                     ? "border-[#052326] ring-2 ring-[#052326]/10 shadow-sm"
-                    : "border-[#E2E8E5] hover:border-[#678882]/50 hover:shadow-sm"
+                    : "border-[#E4DEC8] hover:border-[#678882]/50 hover:shadow-sm"
                 }`}
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <div className="p-2 bg-[#F4F6F4] rounded-lg">
+                    <div className="p-2 bg-[#FAF7EE] rounded-lg">
                       {getFileIcon(file.type, "w-6 h-6")}
                     </div>
                     {getStatusBadge(file.securityStatus)}
@@ -620,7 +620,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
                   </p>
                 </div>
 
-                <div className="pt-3 border-t border-[#E8ECE9] flex items-center justify-between text-xs text-[#678882]">
+                <div className="pt-3 border-t border-[#E4DEC8] flex items-center justify-between text-xs text-[#678882]">
                   <span>{file.formattedSize}</span>
                   <div className="flex items-center gap-1">
                     <button
@@ -639,11 +639,11 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
 
       {/* 5. File Details / Security Analysis Drawer */}
       {selectedFile && (
-        <div className="fixed inset-y-0 right-0 w-full sm:w-[480px] bg-white border-l border-[#E2E8E5] shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-200">
+        <div className="fixed inset-y-0 right-0 w-full sm:w-[480px] bg-[#FCFAF5] border-l border-[#E4DEC8] shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-200">
           {/* Drawer Header */}
-          <div className="p-5 border-b border-[#E2E8E5] flex items-center justify-between bg-[#F9FBFA]">
+          <div className="p-5 border-b border-[#E4DEC8] flex items-center justify-between bg-[#FAF7EE]">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="p-2 bg-white rounded-lg border border-[#E2E8E5]">
+              <div className="p-2 bg-[#FCFAF5] rounded-lg border border-[#E4DEC8]">
                 {getFileIcon(selectedFile.type, "w-6 h-6")}
               </div>
               <div className="min-w-0">
@@ -657,7 +657,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
             </div>
             <button
               onClick={() => setSelectedFile(null)}
-              className="p-1.5 text-[#678882] hover:text-[#052326] hover:bg-[#E8ECE9] rounded-lg transition-colors"
+              className="p-1.5 text-[#678882] hover:text-[#052326] hover:bg-[#EFEAD9] rounded-lg transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -704,7 +704,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
           </div>
 
           {/* Drawer Tabs */}
-          <div className="flex border-b border-[#E2E8E5] px-4 bg-[#F9FBFA] text-xs font-medium">
+          <div className="flex border-b border-[#E4DEC8] px-4 bg-[#FAF7EE] text-xs font-medium">
             <button
               onClick={() => setActiveDetailTab("overview")}
               className={`py-2.5 px-3 border-b-2 transition-colors ${
@@ -748,7 +748,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
               <div className="space-y-4">
                 {/* Threat Category Card */}
                 {selectedFile.threatCategory && (
-                  <div className="bg-[#F9FBFA] p-3.5 rounded-xl border border-[#E2E8E5]">
+                  <div className="bg-[#FAF7EE] p-3.5 rounded-xl border border-[#E4DEC8]">
                     <span className="text-[11px] text-[#678882] font-semibold uppercase tracking-wider block mb-1">
                       Identified Attack Vector
                     </span>
@@ -759,23 +759,23 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
                 )}
 
                 {/* File Metadata */}
-                <div className="bg-[#F9FBFA] p-3.5 rounded-xl border border-[#E2E8E5] space-y-2">
+                <div className="bg-[#FAF7EE] p-3.5 rounded-xl border border-[#E4DEC8] space-y-2">
                   <span className="text-[11px] text-[#678882] font-semibold uppercase tracking-wider block mb-1">
                     File Metadata
                   </span>
-                  <div className="flex justify-between py-1 border-b border-[#E8ECE9]">
+                  <div className="flex justify-between py-1 border-b border-[#E4DEC8]">
                     <span className="text-[#678882]">File Format:</span>
                     <span className="font-mono text-[#052326]">{selectedFile.mimeType}</span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-[#E8ECE9]">
+                  <div className="flex justify-between py-1 border-b border-[#E4DEC8]">
                     <span className="text-[#678882]">Exact Size:</span>
                     <span className="font-mono text-[#052326]">{selectedFile.sizeBytes} bytes</span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-[#E8ECE9]">
+                  <div className="flex justify-between py-1 border-b border-[#E4DEC8]">
                     <span className="text-[#678882]">Target Folder:</span>
                     <span className="text-[#052326]">{selectedFile.folder}</span>
                   </div>
-                  <div className="flex justify-between py-1 border-b border-[#E8ECE9]">
+                  <div className="flex justify-between py-1 border-b border-[#E4DEC8]">
                     <span className="text-[#678882]">Scanned At:</span>
                     <span className="font-mono text-[#052326]">{new Date(selectedFile.analyzedAt).toLocaleString()}</span>
                   </div>
@@ -839,7 +839,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
                         {signal.indicator}
                       </p>
                       {signal.evidenceSnippet && (
-                        <div className="mt-2 p-2 bg-white/80 rounded border border-[#E8ECE9] font-mono text-[10px] text-[#052326] overflow-x-auto">
+                        <div className="mt-2 p-2 bg-white/80 rounded border border-[#E4DEC8] font-mono text-[10px] text-[#052326] overflow-x-auto">
                           Snippet: &quot;{signal.evidenceSnippet}&quot;
                         </div>
                       )}
@@ -851,11 +851,11 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
 
             {activeDetailTab === "content" && (
               <div className="space-y-2">
-                <div className="flex items-center justify-between text-[#678882] text-[11px] pb-1 border-b border-[#E8ECE9]">
+                <div className="flex items-center justify-between text-[#678882] text-[11px] pb-1 border-b border-[#E4DEC8]">
                   <span>Sanitized Extracted Text</span>
                   <span>{selectedFile.extractedPreview.length} characters</span>
                 </div>
-                <pre className="p-3 bg-[#F9FBFA] border border-[#E2E8E5] rounded-xl font-mono text-[11px] text-[#052326] whitespace-pre-wrap leading-relaxed max-h-[380px] overflow-y-auto">
+                <pre className="p-3 bg-[#FAF7EE] border border-[#E4DEC8] rounded-xl font-mono text-[11px] text-[#052326] whitespace-pre-wrap leading-relaxed max-h-[380px] overflow-y-auto">
                   {selectedFile.extractedPreview || "(Empty or non-text content)"}
                 </pre>
               </div>
@@ -867,7 +867,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
       {/* 6. Upload Modal */}
       {isUploadModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl border border-[#E2E8E5] shadow-2xl max-w-lg w-full p-6 space-y-4">
+          <div className="bg-[#FCFAF5] rounded-2xl border border-[#E4DEC8] shadow-2xl max-w-lg w-full p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-[#052326] text-[#C9A86A] rounded-lg">
@@ -898,7 +898,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
               <select
                 value={uploadTargetFolder}
                 onChange={(e) => setUploadTargetFolder(e.target.value as typeof uploadTargetFolder)}
-                className="w-full text-xs bg-[#F9FBFA] border border-[#E2E8E5] rounded-xl px-3 py-2 text-[#052326] focus:outline-none"
+                className="w-full text-xs bg-[#FFFFFF] border border-[#E4DEC8] rounded-xl px-3 py-2 text-[#052326] focus:outline-none"
               >
                 <option value="Unknown / Unclassified">Unknown / Unclassified (Default)</option>
                 <option value="Safe Samples">Safe Samples</option>
@@ -915,7 +915,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
               className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${
                 isDragging
                   ? "border-[#052326] bg-[#EBF1ED]"
-                  : "border-[#D3DDD7] hover:border-[#678882] bg-[#F9FBFA]"
+                  : "border-[#E4DEC8] hover:border-[#678882] bg-[#FAF7EE]"
               }`}
             >
               <input
@@ -931,7 +931,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
                 className="hidden"
               />
 
-              <div className="w-12 h-12 bg-white text-[#2E595A] rounded-xl flex items-center justify-center mx-auto mb-3 shadow-xs border border-[#E2E8E5]">
+              <div className="w-12 h-12 bg-[#FCFAF5] text-[#2E595A] rounded-xl flex items-center justify-center mx-auto mb-3 shadow-xs border border-[#E4DEC8]">
                 <Upload className="w-6 h-6 text-[#2E595A]" />
               </div>
               <h4 className="font-semibold text-sm text-[#052326] mb-1">
@@ -940,7 +940,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
               <p className="text-xs text-[#678882] mb-3">
                 or click to browse from your computer
               </p>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-white rounded-full border border-[#E2E8E5] text-[11px] font-mono text-[#678882]">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#FCFAF5] rounded-full border border-[#E4DEC8] text-[11px] font-mono text-[#678882]">
                 Supported: PDF • EML • TXT • CSV • JSON • MD
               </div>
             </div>
@@ -954,7 +954,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
                     {uploadProgressText || "Processing security scan..."}
                   </span>
                 </div>
-                <div className="w-full bg-white h-2 rounded-full overflow-hidden">
+                <div className="w-full bg-[#FCFAF5] h-2 rounded-full overflow-hidden">
                   <div className="bg-[#2E595A] h-full w-2/3 animate-pulse rounded-full" />
                 </div>
               </div>
@@ -969,7 +969,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
             )}
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E8ECE9]">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E4DEC8]">
               <button
                 type="button"
                 onClick={() => setIsUploadModalOpen(false)}

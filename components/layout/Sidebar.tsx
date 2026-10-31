@@ -112,16 +112,16 @@ export function Sidebar({ activeKey, onSelectKey }: SidebarProps) {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-[#E8ECE9] flex flex-col justify-between h-screen sticky top-0 flex-shrink-0 select-none shadow-[2px_0_12px_rgba(5,35,38,0.02)]">
+    <aside className="w-64 bg-[#FAF7EE] border-r border-[#E4DEC8] flex flex-col justify-between h-screen sticky top-0 flex-shrink-0 select-none shadow-[2px_0_12px_rgba(5,35,38,0.02)]">
       {/* Brand Header */}
       <div>
-        <div className="px-5 py-5 border-b border-[#E8ECE9] flex items-center justify-between">
+        <div className="px-5 py-5 border-b border-[#E4DEC8] flex items-center justify-between bg-[#FAF7EE]">
           <KavachLogo size={36} showText={true} />
         </div>
 
         {/* Clean Primary Navigation */}
         <div className="px-3 py-5 space-y-1">
-          <div className="px-3 pb-2 text-[10px] font-bold tracking-[0.16em] uppercase text-[#678882]/80">
+          <div className="px-3 pb-2 text-[10px] font-bold tracking-[0.16em] uppercase text-[#678882]/90">
             Navigation
           </div>
 
@@ -136,15 +136,15 @@ export function Sidebar({ activeKey, onSelectKey }: SidebarProps) {
                   onClick={() => onSelectKey(item.key)}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs transition-all group ${
                     active
-                      ? "bg-[#EBF1ED] text-[#052326] shadow-xs font-semibold"
-                      : "text-[#2E595A] hover:bg-[#F7F9F8] hover:text-[#052326] font-medium"
+                      ? "bg-[#052326] text-white shadow-xs font-semibold"
+                      : "text-[#2E595A] hover:bg-[#EFECE0] hover:text-[#052326] font-medium"
                   }`}
                 >
                   <div className="flex items-center space-x-3">
                     <Icon
                       className={`w-4 h-4 transition-colors ${
                         active
-                          ? "text-[#052326]"
+                          ? "text-[#C9A86A]"
                           : "text-[#678882] group-hover:text-[#2E595A]"
                       }`}
                     />
@@ -156,8 +156,8 @@ export function Sidebar({ activeKey, onSelectKey }: SidebarProps) {
                       <span
                         className={`text-[9px] font-mono px-2 py-0.5 rounded-full ${
                           active
-                            ? "bg-white text-[#052326] border border-[#A5B5A9]/40 font-semibold"
-                            : "bg-[#F3F6F4] text-[#678882]"
+                            ? "bg-white/15 text-[#C9A86A] border border-[#C9A86A]/30 font-semibold"
+                            : "bg-[#EFECE0] text-[#678882]"
                         }`}
                       >
                         {item.badge}
@@ -175,8 +175,8 @@ export function Sidebar({ activeKey, onSelectKey }: SidebarProps) {
       </div>
 
       {/* Bottom Operational Status Pill */}
-      <div className="p-4 border-t border-[#E8ECE9] bg-[#FBF9F8]">
-        <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-white border border-[#E8ECE9] shadow-xs">
+      <div className="p-4 border-t border-[#E4DEC8] bg-[#FAF7EE]">
+        <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-[#FCFAF5] border border-[#E4DEC8] shadow-xs">
           <div className="flex flex-col">
             <span className="text-[9px] tracking-[0.14em] uppercase font-bold text-[#678882]">
               DEFENSE ENGINE

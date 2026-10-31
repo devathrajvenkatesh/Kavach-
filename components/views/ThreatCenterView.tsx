@@ -116,8 +116,8 @@ export function ThreatCenterView() {
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
       {/* 1. TOP SUMMARY */}
-      <section className="bg-white rounded-2xl border border-[#E8ECE9] p-6 sm:p-8 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E8ECE9]">
+      <section className="bg-[#FCFAF5] rounded-2xl border border-[#E4DEC8] p-6 sm:p-8 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-[#E4DEC8]">
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
               <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-[#C9A86A] bg-[#FAF5EB] px-2.5 py-0.5 rounded-full border border-[#C9A86A]/30">
@@ -144,7 +144,7 @@ export function ThreatCenterView() {
 
         {/* 2. SUMMARY CARDS */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-          <div className="p-4 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9]">
+          <div className="p-4 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8]">
             <span className="text-[11px] font-mono text-[#678882] uppercase tracking-wider block mb-1">
               Threats Detected
             </span>
@@ -154,7 +154,7 @@ export function ThreatCenterView() {
             </span>
           </div>
 
-          <div className="p-4 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9]">
+          <div className="p-4 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8]">
             <span className="text-[11px] font-mono text-[#678882] uppercase tracking-wider block mb-1">
               Threats Blocked
             </span>
@@ -164,7 +164,7 @@ export function ThreatCenterView() {
             </span>
           </div>
 
-          <div className="p-4 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9]">
+          <div className="p-4 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8]">
             <span className="text-[11px] font-mono text-[#678882] uppercase tracking-wider block mb-1">
               Critical Threats
             </span>
@@ -187,7 +187,7 @@ export function ThreatCenterView() {
       </section>
 
       {/* 3. THREAT LIST & CATEGORY FILTERS */}
-      <section className="bg-white rounded-2xl border border-[#E8ECE9] p-6 sm:p-8 shadow-xs space-y-6">
+      <section className="bg-[#FCFAF5] rounded-2xl border border-[#E4DEC8] p-6 sm:p-8 shadow-xs space-y-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-bold text-[#052326] tracking-tight">
@@ -206,13 +206,13 @@ export function ThreatCenterView() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search threat events..."
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#E8ECE9] text-xs focus:outline-none focus:border-[#C9A86A] transition-colors"
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-[#FFFFFF] border border-[#E4DEC8] text-xs focus:outline-none focus:border-[#C9A86A] transition-colors"
             />
           </div>
         </div>
 
         {/* Category Pills */}
-        <div className="flex flex-wrap gap-2 pt-1 border-t border-[#E8ECE9]/70">
+        <div className="flex flex-wrap gap-2 pt-1 border-t border-[#E4DEC8]">
           {[
             { id: "ALL", label: "All Threats (112)" },
             { id: "SECRET_EXFILTRATION", label: "Secret Exfiltration" },
@@ -228,7 +228,7 @@ export function ThreatCenterView() {
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                 selectedCategory === cat.id
                   ? "bg-[#052326] text-white shadow-xs"
-                  : "bg-[#FBF9F8] text-[#2E595A] hover:bg-[#EBF1ED] border border-[#E8ECE9]"
+                  : "bg-[#FAF7EE] text-[#2E595A] hover:bg-[#EFEAD9] border border-[#E4DEC8]"
               }`}
             >
               {cat.label}
@@ -247,7 +247,7 @@ export function ThreatCenterView() {
               <div
                 key={evt.id}
                 onClick={() => setSelectedEvent(evt)}
-                className="p-4 rounded-xl border border-[#E8ECE9] hover:border-[#C9A86A]/70 bg-white hover:bg-[#FAF5EB]/20 transition-all cursor-pointer shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
+                className="p-4 rounded-xl border border-[#E4DEC8] hover:border-[#C9A86A]/70 bg-[#FAF7EE] hover:bg-[#FAF5EB]/40 transition-all cursor-pointer shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 group"
               >
                 <div className="flex items-start space-x-3.5 min-w-0">
                   <div className="mt-0.5 flex-shrink-0">
@@ -297,8 +297,8 @@ export function ThreatCenterView() {
       {/* 4. MODAL DRAWER FOR EVENT DETAILS */}
       {selectedEvent && (
         <div className="fixed inset-0 bg-[#052326]/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl border border-[#E8ECE9] shadow-xl max-w-lg w-full p-6 space-y-5 animate-in zoom-in-95 duration-200">
-            <div className="flex items-start justify-between pb-3 border-b border-[#E8ECE9]">
+          <div className="bg-[#FCFAF5] rounded-2xl border border-[#E4DEC8] shadow-xl max-w-lg w-full p-6 space-y-5 animate-in zoom-in-95 duration-200">
+            <div className="flex items-start justify-between pb-3 border-b border-[#E4DEC8]">
               <div>
                 <div className="flex items-center space-x-2">
                   <span className="text-xs font-bold font-mono text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200">
@@ -312,7 +312,7 @@ export function ThreatCenterView() {
               </div>
               <button
                 onClick={() => setSelectedEvent(null)}
-                className="p-1 rounded-lg text-[#678882] hover:bg-[#FBF9F8] transition-colors"
+                className="p-1 rounded-lg text-[#678882] hover:bg-[#FAF7EE] transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -347,7 +347,7 @@ export function ThreatCenterView() {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-[#E8ECE9] flex justify-end">
+            <div className="pt-3 border-t border-[#E4DEC8] flex justify-end">
               <button
                 onClick={() => setSelectedEvent(null)}
                 className="px-4 py-2 rounded-xl bg-[#052326] text-white text-xs font-semibold hover:bg-[#2E595A] transition-colors"
