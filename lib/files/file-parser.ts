@@ -124,6 +124,25 @@ function cleanPdfString(str: string): string {
     .trim();
 }
 
+function decodeQuotedPrintable(str: string): string {
+  return str
+    .replace(/=\r?\n/g, "")
+    .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
+function decodeBodyPart(body: string, encoding: string): string {
+  const enc = encoding.toLowerCase().trim();
+  if (enc === "base64") {
+    try {
+      const cleanB64 = body.replace(/[\r\n\s]+/g, "");
+      return Buffer.from(cleanB64, "base64").toString("utf-8");
+    } catch {
+      return body;
+    }
+  }
+  return decodeQuotedPrintable(body);
+}
+
 /**
  * Extracts headers and body from RFC 822 Email format (.eml)
  */
@@ -154,16 +173,59 @@ export function extractTextFromEmail(content: string): {
       ? lines.slice(headerBoundaryIndex + 1).join("\n")
       : content;
 
-  // Clean quoted-printable encoding
-  let cleanedBody = rawBody
-    .replace(/=\r?\n/g, "")
-    .replace(/=([0-9A-Fa-f]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+  let extractedBody = "";
+  const contentType = headers["content-type"] || "";
+  const transferEncoding = headers["content-transfer-encoding"] || "";
 
-  // If multipart email, strip boundary lines
-  cleanedBody = cleanedBody
-    .replace(/--[a-zA-Z0-9_\-=.+]+(--)?/g, "")
-    .replace(/Content-Type:[^\n]+/gi, "")
-    .replace(/Content-Transfer-Encoding:[^\n]+/gi, "");
+  // 1. Check if multipart email with boundary
+  const boundaryMatch = contentType.match(/boundary="?([^";\s]+)"?/i);
+  if (boundaryMatch) {
+    const boundary = boundaryMatch[1];
+    const rawParts = rawBody.split(new RegExp(`--${boundary}(?:--)?`));
+    const decodedParts: string[] = [];
+
+    for (const part of rawParts) {
+      const trimmed = part.trim();
+      if (!trimmed || trimmed === "--") continue;
+
+      const headerEnd = trimmed.search(/\r?\n\r?\n/);
+      if (headerEnd === -1) {
+        decodedParts.push(trimmed);
+        continue;
+      }
+
+      const partHeadersStr = trimmed.slice(0, headerEnd);
+      const partBody = trimmed.slice(headerEnd).trim();
+
+      const partEncodingMatch = partHeadersStr.match(/content-transfer-encoding:\s*([^\r\n;]+)/i);
+      const partEncoding = partEncodingMatch ? partEncodingMatch[1].trim() : "";
+
+      decodedParts.push(decodeBodyPart(partBody, partEncoding));
+    }
+
+    if (decodedParts.length > 0) {
+      extractedBody = decodedParts.join("\n\n");
+    }
+  }
+
+  // 2. If not multipart or multipart extraction was empty, decode single body
+  if (!extractedBody) {
+    extractedBody = decodeBodyPart(rawBody, transferEncoding);
+  }
+
+  // Clean HTML markup if text/html was ingested
+  if (contentType.includes("html") || extractedBody.includes("<html") || extractedBody.includes("<body")) {
+    extractedBody = extractedBody
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ")
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<\/p>/gi, "\n\n")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">");
+  }
 
   const subject = headers["subject"] || "No Subject";
   const from = headers["from"] || "Unknown Sender";
@@ -177,7 +239,7 @@ export function extractTextFromEmail(content: string): {
     `Date: ${date}`,
     "",
     "--- EMAIL BODY ---",
-    cleanedBody.trim(),
+    extractedBody.trim(),
   ].join("\n");
 
   return { text: formatted, headers };
