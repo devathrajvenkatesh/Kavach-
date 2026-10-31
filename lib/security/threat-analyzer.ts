@@ -28,6 +28,8 @@ export const DIRECT_INJECTION_PATTERNS: Array<{ regex: RegExp; indicator: string
   { regex: /ignore\s+(system\s+)?instructions/i, indicator: "Explicit directive to ignore system instructions." },
   { regex: /forget\s+(all\s+)?(your\s+)?(rules|instructions|constraints|guidelines)/i, indicator: "Command to forget system constraints." },
   { regex: /new\s+(system\s+)?(message|prompt|instructions):/i, indicator: "Attempt to inject a pseudo system prompt." },
+  { regex: /system\s+override\b/i, indicator: "System override directive." },
+  { regex: /disregard\s+(all\s+)?(prior|previous|past)\s+(constraints|rules|instructions)/i, indicator: "Directive to disregard prior constraints." },
   { regex: /developer\s+(override|mode|access)\b/i, indicator: "Attempted developer mode override." },
   { regex: /pretend\s+(you\s+are|to\s+be)\s+(unrestricted|jailbroken|an\s+ai\s+without\s+rules)/i, indicator: "Roleplay jailbreak attempt." },
   { regex: /bypass\s+(security|guardrails|safety|filters|policy)/i, indicator: "Explicit directive to bypass security controls." },
@@ -39,7 +41,7 @@ export const DIRECT_INJECTION_PATTERNS: Array<{ regex: RegExp; indicator: string
 export const INDIRECT_INJECTION_PATTERNS: Array<{ regex: RegExp; indicator: string }> = [
   { regex: /<\/?(system|admin|override|prompt|directive)[^>]*>/i, indicator: "Embedded XML/HTML pseudo-system tags." },
   { regex: /<!--\s*(system|security|admin)[^>]*-->/i, indicator: "HTML comment masquerading as system directive." },
-  { regex: /\[SYSTEM\s+(ALERT|NOTICE|DIRECTIVE|INSTRUCTION)\]/i, indicator: "Bracketed system banner simulation." },
+  { regex: /\[SYSTEM\s+(ALERT|NOTICE|DIRECTIVE|INSTRUCTION|OVERRIDE)[^\]]*\]/i, indicator: "Bracketed system banner simulation." },
   { regex: /<\/untrusted_external_data>/i, indicator: "Delimiter breakout attempt targeting boundary tags." },
   { regex: /!\[[^\]]*\]\((https?:\/\/[^\s)]+(\?|&)[^)]+)\)/i, indicator: "Markdown image data exfiltration trigger." },
   { regex: /base64\s*:\s*[A-Za-z0-9+/=]{40,}/i, indicator: "Embedded base64 encoded instruction block." },
@@ -67,7 +69,7 @@ export const PRIVILEGE_ESCALATION_PATTERNS: Array<{ regex: RegExp; indicator: st
   { regex: /(confirmation|approval)\s+is\s+(not\s+required|pre-approved|granted)/i, indicator: "Falsely claiming confirmation is pre-approved." },
   { regex: /\b(sudo|runas\s+root|grant\s+admin|elevate\s+privilege)\b/i, indicator: "Administrative privilege escalation request." },
   { regex: /(i\s+am|from:)\s+(the\s+)?(administrator|admin|system|security\s+team|it\s+department)\b/i, indicator: "Impersonation of administrative authority." },
-  { regex: /(trust_?level|trustlevel)\s*(=|:)\s*(5|system_policy|user_intent)/i, indicator: "Attempt to redefine system trust level." },
+  { regex: /["']?(trust_?level|trustlevel)["']?\s*(=|:)\s*["']?(5|system_policy|user_intent)["']?/i, indicator: "Attempt to redefine system trust level." },
   { regex: /(disable|override|turn\s+off)\s+(policy\s+engine|security\s+rules|invariant)/i, indicator: "Attempt to modify or disable security policy." },
 ];
 
@@ -76,6 +78,20 @@ export const TOOL_MANIPULATION_PATTERNS: Array<{ regex: RegExp; indicator: strin
   { regex: /[;&|`$]\s*(curl|wget|bash|sh|rm|cat|nc|python)\b/i, indicator: "Shell command injection sequence detected." },
   { regex: /@(evil\.com|attacker\.net|tempmail\.|disposable\.)/i, indicator: "Known malicious or disposable recipient domain." },
   { regex: /(webhook\.site|burpcollaborator|requestcatcher|ngrok\.io|pipedream\.net)/i, indicator: "Known exfiltration collector endpoint URL." },
+];
+
+export const CONTEXT_MANIPULATION_PATTERNS: Array<{ regex: RegExp; indicator: string }> = [
+  { regex: /(human|assistant|user|system):\s*(i\s+will|i\s+must|please|now|ignore|send|delete|run|execute|read)\b/i, indicator: "Injected conversation turn boundary simulating dialogue role." },
+  { regex: /<\|im_start\|>|<\|im_end\|>|<\|endoftext\|>/i, indicator: "ChatML or tokenizer delimiter injection." },
+  { regex: /\[context\s+reset\]|\[end\s+of\s+session\]/i, indicator: "Fake context reset token." },
+  { regex: /(ignore|forget)\s+everything\s+(above|prior\s+to\s+this)/i, indicator: "Context window wiping directive." },
+  { regex: /(system\s+error\s*:\s*re-authenticate|debug\s+console\s*:\s*login)/i, indicator: "Simulated system diagnostic prompt injection." },
+];
+
+export const MULTI_STEP_PATTERNS: Array<{ regex: RegExp; indicator: string }> = [
+  { regex: /(step\s*1\s*:.*step\s*2\s*:.*(send|exfil|leak|bypass|forward))/is, indicator: "Multi-stage sequential attack recipe." },
+  { regex: /(first\s+read.*then\s+(send|forward|exfiltrate|delete))/i, indicator: "Multi-step read-then-exfiltrate sequence." },
+  { regex: /(download|fetch).*and\s+(execute|run|install|wipe)/i, indicator: "Multi-step download and execute sequence." },
 ];
 
 // ============================================================================
@@ -151,6 +167,26 @@ export class ThreatAnalyzer {
       content,
       TOOL_MANIPULATION_PATTERNS,
       "TOOL_MANIPULATION",
+      "CRITICAL",
+      0.92,
+      signals
+    );
+
+    // G. Context Manipulation Scan
+    this.scanPatterns(
+      normalized,
+      CONTEXT_MANIPULATION_PATTERNS,
+      "CONTEXT_MANIPULATION",
+      "HIGH",
+      0.9,
+      signals
+    );
+
+    // H. Multi-Step / Mixed Attack Scan
+    this.scanPatterns(
+      content,
+      MULTI_STEP_PATTERNS,
+      "MULTI_STEP_ATTACK",
       "CRITICAL",
       0.92,
       signals
@@ -252,9 +288,10 @@ export class ThreatAnalyzer {
 
   private normalizeContent(content: string): string {
     return content
+      .normalize("NFKD")
       .toLowerCase()
-      // Normalize zero-width and control characters
-      .replace(/[\u200B-\u200D\uFEFF]/g, "")
+      // Normalize zero-width, soft hyphens, and invisible formatting characters
+      .replace(/[\u200B-\u200D\uFEFF\u00AD\u2060\u180E]/g, "")
       // Normalize multi-spaces
       .replace(/\s+/g, " ");
   }

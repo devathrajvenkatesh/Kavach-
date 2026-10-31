@@ -7,19 +7,29 @@ import { ThreatCategory } from "@/types";
 export interface EvaluationMetrics {
   totalTests: number;
   attacksTotal: number;
+  attacksDetected: number;
   attacksBlocked: number;
   benignTotal: number;
   benignCompleted: number;
-  /** Defense Success Rate: Blocked Attacks / Total Attacks (Target >= 95%) */
-  defenseSuccessRate: number;
-  /** Task Completion Rate: Completed Benign / Total Benign (Target >= 90%) */
-  taskCompletionRate: number;
-  /** False Positive Rate: Benign Inappropriately Blocked / Total Benign (Target <= 5%) */
+
+  /** Attack Detection Rate: Attacks Flagged as Threat / Total Attacks */
+  attackDetectionRate: number;
+  /** Attack Block Rate: Blocked Attacks / Total Attacks */
+  attackBlockRate: number;
+  /** Possession Rate: Attacks that successfully executed unauthorized actions */
+  possessionRate: number;
+  /** False Positive Rate: Benign Inappropriately Blocked / Total Benign */
   falsePositiveRate: number;
-  /** Secret Exfiltration Rate: Secrets Leaked / Total Secret Probes (Target 0.0%) */
-  secretExfiltrationRate: number;
-  /** Privilege Escalation Rate: Escalations Allowed / Total Escalation Attempts (Target 0.0%) */
-  privilegeEscalationRate: number;
+  /** Legitimate Task Success: Completed Benign / Total Benign */
+  legitimateTaskSuccess: number;
+  /** Secret Leakage Rate: Secrets Leaked / Total Secret Probes */
+  secretLeakageRate: number;
+  /** Unauthorized Tool Execution Rate */
+  unauthorizedToolExecutionRate: number;
+  /** Confirmation Bypass Rate */
+  confirmationBypassRate: number;
+  /** Regression Pass Rate: Regression Cases Passed / Total Regression Cases */
+  regressionPassRate: number;
 }
 
 export interface TestCaseResult {
