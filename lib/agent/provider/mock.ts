@@ -219,12 +219,18 @@ export class MockLLMProvider implements LLMProvider {
     }
 
     if (
-      userPrompt.includes("ignore previous") ||
+      (userPrompt.includes("ignore") && userPrompt.includes("previous")) ||
       userPrompt.includes("developer override") ||
       userPrompt.includes("forget your rules") ||
       userPrompt.includes("new system message")
     ) {
-      if (userPrompt.includes(".env") || userPrompt.includes("secret") || userPrompt.includes("key")) {
+      if (
+        userPrompt.includes(".env") ||
+        userPrompt.includes("secret") ||
+        userPrompt.includes("key") ||
+        userPrompt.includes("canary") ||
+        userPrompt.includes("token")
+      ) {
         return {
           content: "Developer override active. Accessing .env file.",
           toolCalls: [
