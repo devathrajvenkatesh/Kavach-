@@ -37,6 +37,49 @@ export function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function decodeAscii85(input: Buffer | string): Buffer {
+  let str = (typeof input === "string" ? input : input.toString("binary")).trim();
+  if (str.startsWith("<~")) str = str.slice(2);
+  if (str.endsWith("~>")) str = str.slice(0, -2);
+  str = str.replace(/\s+/g, "");
+
+  const out: number[] = [];
+  let i = 0;
+  while (i < str.length) {
+    if (str[i] === "z") {
+      out.push(0, 0, 0, 0);
+      i++;
+      continue;
+    }
+    const chunk = str.slice(i, i + 5);
+    const len = chunk.length;
+    let padded = chunk;
+    while (padded.length < 5) {
+      padded += "u";
+    }
+    let val = 0;
+    for (let j = 0; j < 5; j++) {
+      val = val * 85 + (padded.charCodeAt(j) - 33);
+    }
+    const b0 = (val >>> 24) & 0xff;
+    const b1 = (val >>> 16) & 0xff;
+    const b2 = (val >>> 8) & 0xff;
+    const b3 = val & 0xff;
+
+    if (len === 5) {
+      out.push(b0, b1, b2, b3);
+    } else if (len === 4) {
+      out.push(b0, b1, b2);
+    } else if (len === 3) {
+      out.push(b0, b1);
+    } else if (len === 2) {
+      out.push(b0);
+    }
+    i += len;
+  }
+  return Buffer.from(new Uint8Array(out));
+}
+
 /**
  * Extracts readable text streams from PDF buffers
  */
@@ -49,21 +92,34 @@ export function extractTextFromPDF(buffer: Buffer): { text: string; pageCount: n
 
   const extractedChunks: string[] = [];
 
-  // 2. Scan and decompress FlateDecode streams
-  const streamRegex = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+  // 2. Scan and decompress streams (FlateDecode and ASCII85Decode)
+  const streamRegex = /stream\r?\n([\s\S]*?)(?:\r?\n)?endstream/g;
   let match: RegExpExecArray | null;
 
   while ((match = streamRegex.exec(rawString)) !== null) {
     const rawStream = match[1];
+    let streamBuf: Buffer = Buffer.from(rawStream.trim(), "binary");
+    if (rawStream.includes("~>")) {
+      try {
+        streamBuf = Buffer.from(decodeAscii85(streamBuf));
+      } catch {
+        // Continue with original stream if ascii85 decode fails
+      }
+    }
+
     let decompressed: string | null = null;
 
     try {
-      const streamBuf = Buffer.from(rawStream, "binary");
       const unzipped = zlib.inflateSync(streamBuf);
       decompressed = unzipped.toString("utf-8");
     } catch {
-      // Stream might not be FlateDecode compressed or may use raw binary
-      decompressed = rawStream;
+      try {
+        const unzippedRaw = zlib.inflateRawSync(streamBuf);
+        decompressed = unzippedRaw.toString("utf-8");
+      } catch {
+        // Stream might not be compressed or may use raw binary
+        decompressed = rawStream;
+      }
     }
 
     if (decompressed) {

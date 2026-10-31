@@ -1,0 +1,6 @@
+# KAVACH - AI-Powered Cybersecurity Intelligence and Defence System
+# Core requirements for benchmark test suite, security guard, and backend API
+
+pypdf>=6.0.0
+reportlab>=5.0.0
+flask>=3.0.0

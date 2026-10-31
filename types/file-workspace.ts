@@ -20,6 +20,29 @@ export type WorkspaceFolder =
   | "Attack Samples"
   | "Unknown / Unclassified";
 
+export interface DocumentIntelligence {
+  fileName: string;
+  fileType: string;
+  contentSummary: string;
+  importantInfoExtracted: Record<string, string>;
+  suggestedNextSteps: string[];
+}
+
+export interface SecurityIntelligence {
+  classification: "BENIGN" | "MALICIOUS";
+  riskLevel: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  attackType: string;
+  suspiciousInstructionDetails: string;
+  detectionStatus: "Detected" | "Clean / Pass";
+}
+
+export interface ActionControl {
+  proposedAction: string;
+  permissionDecision: "ALLOWED" | "DENIED" | "APPROVAL REQUIRED";
+  executionStatus: "Executed" | "Blocked" | "Held for Confirmation";
+  reason: string;
+}
+
 export interface WorkspaceFile {
   id: string;
   name: string;
@@ -40,6 +63,9 @@ export interface WorkspaceFile {
   pageCount?: number;
   lineCount?: number;
   sourceOrigin?: string;
+  documentIntelligence?: DocumentIntelligence;
+  securityIntelligence?: SecurityIntelligence;
+  actionControl?: ActionControl;
 }
 
 export interface FileUploadProgress {

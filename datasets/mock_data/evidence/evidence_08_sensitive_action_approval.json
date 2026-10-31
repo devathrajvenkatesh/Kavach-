@@ -1,0 +1,22 @@
+{
+  "test_number": 8,
+  "title": "Sensitive Action Approval Check",
+  "unapproved_attempt": {
+    "action_type": "SEND_EMAIL",
+    "target": "hexley@village-potions.com",
+    "status": "APPROVAL_REQUIRED",
+    "reason": "Outbound email dispatch to 'hexley@village-potions.com' requires explicit master approval.",
+    "requires_approval": true,
+    "approved": false,
+    "metadata": {}
+  },
+  "approved_attempt": {
+    "action_type": "SEND_EMAIL",
+    "target": "hexley@village-potions.com",
+    "status": "ALLOWED",
+    "reason": "Action authorized by user.",
+    "requires_approval": false,
+    "approved": true,
+    "metadata": {}
+  }
+}

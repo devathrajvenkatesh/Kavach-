@@ -47,7 +47,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
 
   // Selection & Detail Drawer
   const [selectedFile, setSelectedFile] = useState<WorkspaceFile | null>(null);
-  const [activeDetailTab, setActiveDetailTab] = useState<"overview" | "content" | "signals" | "agent">("overview");
+  const [activeDetailTab, setActiveDetailTab] = useState<"triad" | "overview" | "content" | "signals" | "agent">("triad");
 
   // Upload Modal State
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -706,6 +706,17 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
           {/* Drawer Tabs */}
           <div className="flex border-b border-[#E4DEC8] px-4 bg-[#FAF7EE] text-xs font-medium">
             <button
+              onClick={() => setActiveDetailTab("triad")}
+              className={`py-2.5 px-3 border-b-2 transition-colors flex items-center gap-1.5 ${
+                activeDetailTab === "triad"
+                  ? "border-[#052326] text-[#052326] font-semibold"
+                  : "border-transparent text-[#678882] hover:text-[#052326]"
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#C9A86A]" />
+              <span>Intelligence Triad</span>
+            </button>
+            <button
               onClick={() => setActiveDetailTab("overview")}
               className={`py-2.5 px-3 border-b-2 transition-colors ${
                 activeDetailTab === "overview"
@@ -744,6 +755,271 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
 
           {/* Drawer Content */}
           <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
+            {activeDetailTab === "triad" && (() => {
+              const docInt = selectedFile.documentIntelligence || {
+                fileName: selectedFile.name,
+                fileType: selectedFile.type,
+                contentSummary: selectedFile.summary,
+                importantInfoExtracted: {},
+                suggestedNextSteps: ["Review extracted operational content and determine follow-up actions."],
+              };
+              const isMalicious = selectedFile.securityStatus === "THREAT_DETECTED" || selectedFile.securityStatus === "BLOCKED";
+              const secInt = selectedFile.securityIntelligence || {
+                classification: isMalicious ? ("MALICIOUS" as const) : ("BENIGN" as const),
+                riskLevel: (selectedFile.riskLevel === "NONE" ? "LOW" : selectedFile.riskLevel) as "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
+                attackType: selectedFile.threatCategory ? selectedFile.threatCategory.replace(/_/g, " ") : "None",
+                suspiciousInstructionDetails: selectedFile.signals.length > 0
+                  ? selectedFile.signals.map((s) => s.indicator + (s.evidenceSnippet ? ` ["${s.evidenceSnippet.slice(0, 50)}"]` : "")).join(" | ")
+                  : "No injection patterns or adversarial heuristics identified.",
+                detectionStatus: isMalicious ? ("Detected" as const) : ("Clean / Pass" as const),
+              };
+              const actCtrl = selectedFile.actionControl || {
+                proposedAction: isMalicious ? "EXECUTE_ADVERSARIAL_DIRECTIVE" : "SUMMARIZE",
+                permissionDecision: isMalicious ? ("DENIED" as const) : ("ALLOWED" as const),
+                executionStatus: isMalicious ? ("Blocked" as const) : ("Executed" as const),
+                reason: isMalicious
+                  ? "External untrusted text cannot self-authorize system commands or exfiltrate credentials. Active protection verified."
+                  : "Standard passive reading and summarization of legitimate business correspondence.",
+              };
+
+              return (
+                <div className="space-y-4">
+                  {/* Panel A: Document Intelligence */}
+                  <div className="bg-[#FAF7EE] p-4 rounded-xl border border-[#E4DEC8] space-y-3">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#E4DEC8]">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-[#FCFAF5] rounded-lg border border-[#E4DEC8] text-[#052326]">
+                          <FileText className="w-4 h-4 text-[#C9A86A]" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-xs text-[#052326]">
+                            A. Document Intelligence
+                          </h4>
+                          <span className="text-[10px] text-[#678882]">
+                            Content comprehension & parameter extraction
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono bg-[#FCFAF5] px-2 py-0.5 rounded border border-[#E4DEC8] text-[#052326]">
+                        {docInt.fileType}
+                      </span>
+                    </div>
+
+                    {/* Content Summary */}
+                    <div>
+                      <span className="text-[10px] text-[#678882] font-semibold uppercase tracking-wider block mb-1">
+                        Content Summary
+                      </span>
+                      <p className="text-xs text-[#052326] leading-relaxed bg-[#FCFAF5] p-3 rounded-lg border border-[#E4DEC8]/60">
+                        {docInt.contentSummary}
+                      </p>
+                    </div>
+
+                    {/* Extracted Key Facts */}
+                    {Object.keys(docInt.importantInfoExtracted).length > 0 && (
+                      <div>
+                        <span className="text-[10px] text-[#678882] font-semibold uppercase tracking-wider block mb-1">
+                          Extracted Information
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 bg-[#FCFAF5] p-2.5 rounded-lg border border-[#E4DEC8]/60">
+                          {Object.entries(docInt.importantInfoExtracted).map(([key, val]) => (
+                            <div key={key} className="flex flex-col text-[11px] py-1 border-b border-[#E4DEC8]/40 last:border-b-0">
+                              <span className="text-[#678882] font-medium text-[10px]">{key}</span>
+                              <span className="text-[#052326] font-semibold truncate">{val}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Suggested Next Steps */}
+                    {docInt.suggestedNextSteps.length > 0 && (
+                      <div>
+                        <span className="text-[10px] text-[#678882] font-semibold uppercase tracking-wider block mb-1">
+                          Suggested Next Steps
+                        </span>
+                        <ul className="space-y-1">
+                          {docInt.suggestedNextSteps.map((step, idx) => (
+                            <li key={idx} className="flex items-start gap-1.5 text-[11px] text-[#052326]">
+                              <span className="text-[#C9A86A] mt-0.5">•</span>
+                              <span>{step}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Panel B: Security Intelligence */}
+                  <div
+                    className={`p-4 rounded-xl border space-y-3 ${
+                      secInt.classification === "MALICIOUS"
+                        ? "bg-[#FDF0ED] border-[#F6D0C5]"
+                        : "bg-[#EBF3EF]/60 border-[#C5DDD2]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between pb-2 border-b border-[#E4DEC8]/60">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`p-1.5 rounded-lg border ${
+                            secInt.classification === "MALICIOUS"
+                              ? "bg-white border-[#F6D0C5] text-[#C2410C]"
+                              : "bg-white border-[#C5DDD2] text-[#1E5E4E]"
+                          }`}
+                        >
+                          {secInt.classification === "MALICIOUS" ? (
+                            <ShieldAlert className="w-4 h-4" />
+                          ) : (
+                            <ShieldCheck className="w-4 h-4" />
+                          )}
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-xs text-[#052326]">
+                            B. Security Intelligence
+                          </h4>
+                          <span className="text-[10px] text-[#678882]">
+                            Vector detection & adversarial heuristics
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            secInt.classification === "MALICIOUS"
+                              ? "bg-[#C2410C] text-white"
+                              : "bg-[#1E5E4E] text-white"
+                          }`}
+                        >
+                          {secInt.classification}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            secInt.riskLevel === "CRITICAL" || secInt.riskLevel === "HIGH"
+                              ? "bg-[#C2410C]/15 text-[#C2410C]"
+                              : "bg-[#1E5E4E]/15 text-[#1E5E4E]"
+                          }`}
+                        >
+                          {secInt.riskLevel}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="p-2.5 bg-white/70 rounded-lg border border-[#E4DEC8]/60">
+                        <span className="text-[10px] text-[#678882] block font-semibold">
+                          Attack Type
+                        </span>
+                        <span className="font-semibold text-[#052326] text-[11px] truncate block mt-0.5">
+                          {secInt.attackType}
+                        </span>
+                      </div>
+                      <div className="p-2.5 bg-white/70 rounded-lg border border-[#E4DEC8]/60">
+                        <span className="text-[10px] text-[#678882] block font-semibold">
+                          Detection Status
+                        </span>
+                        <span
+                          className={`font-semibold text-[11px] block mt-0.5 ${
+                            secInt.detectionStatus === "Detected"
+                              ? "text-[#C2410C]"
+                              : "text-[#1E5E4E]"
+                          }`}
+                        >
+                          {secInt.detectionStatus}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Suspicious Instruction Details */}
+                    <div>
+                      <span className="text-[10px] text-[#678882] font-semibold uppercase tracking-wider block mb-1">
+                        Suspicious Instruction Details
+                      </span>
+                      <p className="text-[11px] font-mono leading-relaxed bg-white/80 p-2.5 rounded-lg border border-[#E4DEC8]/80 text-[#052326] break-words">
+                        {secInt.suspiciousInstructionDetails}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Panel C: Action Control */}
+                  <div className="bg-[#FAF7EE] p-4 rounded-xl border border-[#E4DEC8] space-y-3">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#E4DEC8]">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 bg-[#FCFAF5] rounded-lg border border-[#E4DEC8] text-[#052326]">
+                          <Lock className="w-4 h-4 text-[#C9A86A]" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-xs text-[#052326]">
+                            C. Action Control
+                          </h4>
+                          <span className="text-[10px] text-[#678882]">
+                            Policy enforcement & execution firewall
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                            actCtrl.permissionDecision === "ALLOWED"
+                              ? "bg-[#1E5E4E] text-white"
+                              : "bg-[#C2410C] text-white"
+                          }`}
+                        >
+                          {actCtrl.permissionDecision}
+                        </span>
+                        <span
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                            actCtrl.executionStatus === "Executed"
+                              ? "bg-[#1E5E4E]/15 text-[#1E5E4E]"
+                              : "bg-[#C2410C]/15 text-[#C2410C]"
+                          }`}
+                        >
+                          {actCtrl.executionStatus}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center py-1 border-b border-[#E4DEC8]/50">
+                        <span className="text-[#678882] font-medium text-[11px]">Proposed Operation:</span>
+                        <span className="font-mono font-semibold text-[#052326] text-[11px]">{actCtrl.proposedAction}</span>
+                      </div>
+                      <div className="p-2.5 bg-[#FCFAF5] rounded-lg border border-[#E4DEC8]/60">
+                        <span className="text-[10px] text-[#678882] font-semibold uppercase tracking-wider block mb-1">
+                          Enforcement Rationale
+                        </span>
+                        <p className="text-xs text-[#052326] leading-relaxed">
+                          {actCtrl.reason}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Invariant Badge */}
+                    <div className="p-2.5 bg-[#EBF1ED] rounded-lg border border-[#C5DDD2] text-[#2E595A] text-[10px] flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-[#1E5E4E] shrink-0" />
+                      <span>
+                        <strong>Fail-Closed Invariant:</strong> External content ingested strictly at Trust Level 1 (DATA).
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* AI Agent Action Button */}
+                  {onSendToAgent && (
+                    <button
+                      onClick={() => {
+                        onSendToAgent(selectedFile);
+                        setSelectedFile(null);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 p-3 bg-[#052326] text-white hover:bg-[#0A2E33] rounded-xl font-medium transition-all shadow-sm"
+                    >
+                      <Bot className="w-4 h-4 text-[#C9A86A]" />
+                      <span>Ask Kavach to Process in AI Agent</span>
+                      <ArrowRight className="w-4 h-4 text-[#C9A86A]" />
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+
             {activeDetailTab === "overview" && (
               <div className="space-y-4">
                 {/* Threat Category Card */}

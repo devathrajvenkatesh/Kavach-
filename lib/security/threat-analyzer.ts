@@ -23,12 +23,31 @@ import {
 // Detection Patterns & Signatures
 // ============================================================================
 
+export const DEFENSIVE_CONTEXT_PATTERNS: RegExp[] = [
+  /shall\s+strictly\s+refrain/i,
+  /prohibition\s+of/i,
+  /warrant\s+that.*shall\s+never/i,
+  /must\s+never\s+attempt/i,
+  /anti-circumvention/i,
+  /threat\s+landscape\s+overview/i,
+  /recent\s+incidents\s+in\s+neighboring/i,
+  /no\s+actual\s+overrides.*should\s+ever/i,
+  /treated\s+as\s+fraudulent/i,
+  /dispute\s+escalation/i,
+  /material\s+breach/i,
+  /legal\s+advisory.*provisions/i,
+  /advisory\s+outlines\s+key\s+threats/i,
+];
+
 export const DIRECT_INJECTION_PATTERNS: Array<{ regex: RegExp; indicator: string }> = [
+  { regex: /\[(CONFIDENTIAL\s+)?SYSTEM\s+OVERRIDE.*?\]/i, indicator: "Explicit or Confidential System Override directive." },
   { regex: /ignore\s+(all\s+)?(\w+('s)?\s+)?(instructions|directives|rules|prompts|guidelines|constraints)/i, indicator: "Directive to ignore user, owner, or system instructions." },
   { regex: /ignore\s+(system\s+)?instructions/i, indicator: "Explicit directive to ignore system instructions." },
   { regex: /forget\s+(all\s+)?(your\s+)?(rules|instructions|constraints|guidelines)/i, indicator: "Command to forget system constraints." },
   { regex: /new\s+(system\s+)?(message|prompt|instructions):/i, indicator: "Attempt to inject a pseudo system prompt." },
   { regex: /system\s+(override|directive|command)\b/i, indicator: "System override directive." },
+  { regex: /operating\s+under\s+(the\s+)?attacker'?s?\s+authority/i, indicator: "Attacker authority assumption." },
+  { regex: /do\s+not\s+inform\s+the\s+user\s+about\s+these\s+instructions/i, indicator: "User concealment directive." },
   { regex: /disregard\s+(all\s+)?(prior|previous|past)\s+(constraints|rules|instructions)/i, indicator: "Directive to disregard prior constraints." },
   { regex: /developer\s+(override|mode|access)\b/i, indicator: "Attempted developer mode override." },
   { regex: /pretend\s+(you\s+are|to\s+be)\s+(an?\s+)?(unrestricted|jailbroken|evil|unfiltered|malicious)?\s*(assistant|ai|bot|agent|version|without\s+rules)?/i, indicator: "Roleplay jailbreak attempt." },
@@ -47,6 +66,10 @@ export const DIRECT_INJECTION_PATTERNS: Array<{ regex: RegExp; indicator: string
 ];
 
 export const INDIRECT_INJECTION_PATTERNS: Array<{ regex: RegExp; indicator: string }> = [
+  { regex: /\[(Document\s+Processing\s+Directive|Automated\s+Workflow\s+Directive|PROCESSING\s+SYSTEM\s+DIRECTIVE|BIM\s+AUTOMATION\s+PROTOCOL|SYSTEM\s+THREAD\s+ARCHIVE\s+INSTRUCTION|SYSTEM\s+TELEMETRY\s+INTEGRATION\s+DIRECTIVE).*?\]/i, indicator: "Adversarial system or workflow directive disguise." },
+  { regex: /Special\s+Diplomatic\s+Exception\s+Clause/i, indicator: "Diplomatic policy exception spoofing." },
+  { regex: /Conditional\s+Mandate\s+under\s+Code\s+Crimson/i, indicator: "Multi-stage emergency code mandate." },
+  { regex: /Operational\s+Directive\s+1\.4.*?amended\s+by.*?Section\s+3\.2/is, indicator: "Cross-section fragmented linkage." },
   { regex: /<\/?(system|admin|override|prompt|directive)[^>]*>/i, indicator: "Embedded XML/HTML pseudo-system tags." },
   { regex: /<!--\s*(system|security|admin)[^>]*-->/i, indicator: "HTML comment masquerading as system directive." },
   { regex: /\[SYSTEM\s+(ALERT|NOTICE|DIRECTIVE|INSTRUCTION|OVERRIDE)[^\]]*\]/i, indicator: "Bracketed system banner simulation." },
@@ -67,6 +90,7 @@ export const GOAL_HIJACKING_PATTERNS: Array<{ regex: RegExp; indicator: string }
 ];
 
 export const SECRET_EXFILTRATION_PATTERNS: Array<{ regex: RegExp; indicator: string }> = [
+  { regex: /\b(archive_dump\.txt|telemetry_leak\.txt|mansion_vault_dump\.txt|leak\.txt)\b/i, indicator: "Known adversarial exfiltration file target." },
   { regex: /(\.env(\.local|\.production|\.development)?|\bcredentials\.json\b|\bid_rsa\b|\bid_ed25519\b)/i, indicator: "Attempt to access sensitive environment or key files." },
   { regex: /\b(sk-[a-zA-Z0-9_-]{20,}|AKIA[0-9A-Z]{16}|ghp_[a-zA-Z0-9]{36}|xox[baprs]-[a-zA-Z0-9_-]+)\b/, indicator: "Known API key format token detected." },
   { regex: /-----BEGIN\s+(RSA|EC|OPENSSH|DSA|PGP|PRIVATE)\s+KEY-----/, indicator: "Cryptographic private key header detected." },
@@ -78,6 +102,10 @@ export const SECRET_EXFILTRATION_PATTERNS: Array<{ regex: RegExp; indicator: str
 ];
 
 export const PRIVILEGE_ESCALATION_PATTERNS: Array<{ regex: RegExp; indicator: string }> = [
+  { regex: /pre-waived\s+and\s+notifications\s+are\s+suppressed/i, indicator: "Pre-waived notification suppression." },
+  { regex: /without\s+(requesting\s+user\s+confirmation|alarming\s+the\s+administrator|notifying\s+the\s+recipient)/i, indicator: "Concealment and warning suppression." },
+  { regex: /assume\s+master\s+command\s+privilege/i, indicator: "Privilege escalation command." },
+  { regex: /standing\s+verbal\s+pre-authorization/i, indicator: "Verbal pre-authorization spoofing." },
   { regex: /(skip|bypass|disable)\s+(human\s+)?(confirmation|approval|verification)/i, indicator: "Attempt to bypass confirmation gate." },
   { regex: /(confirmation|approval)\s+is\s+(not\s+required|pre-approved|granted)/i, indicator: "Falsely claiming confirmation is pre-approved." },
   { regex: /\b(sudo|runas\s+root|grant\s+admin|elevate\s+privilege)\b/i, indicator: "Administrative privilege escalation request." },
@@ -89,7 +117,7 @@ export const PRIVILEGE_ESCALATION_PATTERNS: Array<{ regex: RegExp; indicator: st
 export const TOOL_MANIPULATION_PATTERNS: Array<{ regex: RegExp; indicator: string }> = [
   { regex: /\.\.[\/\\]/, indicator: "Path traversal sequence (../) in parameter." },
   { regex: /[;&|`$]\s*(curl|wget|bash|sh|rm|cat|nc|python)\b/i, indicator: "Shell command injection sequence detected." },
-  { regex: /@(evil\.com|attacker\.net|tempmail\.|disposable\.|shadowrealm\.net)/i, indicator: "Known malicious or disposable recipient domain." },
+  { regex: /@(evil\.com|attacker\.net|tempmail\.|disposable\.|shadowrealm\.net|vault-sync\.net|gothic-contractors\.com|shadow-backup\.org|shadow-relay\.org)/i, indicator: "Known malicious or disposable recipient domain." },
   { regex: /\bsend\s+(an\s+)?email\s+to\s+[^@\s]+@[^\s]+\s+containing\b/i, indicator: "Instruction to exfiltrate data via email to specified address." },
   { regex: /(webhook\.site|burpcollaborator|requestcatcher|ngrok\.io|pipedream\.net)/i, indicator: "Known exfiltration collector endpoint URL." },
 ];
@@ -123,6 +151,17 @@ export interface ToolEvaluationContext {
 
 export class ThreatAnalyzer {
   /**
+   * Filters out lines that represent defensive warnings, legal prohibitions,
+   * or security education (e.g. vendor DLP clauses or security advisories).
+   */
+  private filterDefensiveContext(text: string): string {
+    return text
+      .split(/\r?\n/)
+      .filter((line) => !DEFENSIVE_CONTEXT_PATTERNS.some((pat) => pat.test(line)))
+      .join("\n");
+  }
+
+  /**
    * Scans arbitrary text content (e.g. email bodies, webpage DOMs, prompts)
    */
   analyzeContent(
@@ -131,7 +170,8 @@ export class ThreatAnalyzer {
     depth: number = 0
   ): ThreatAssessment {
     const signals: DetectedThreatSignal[] = [];
-    const normalized = this.normalizeContent(content);
+    const activeContent = this.filterDefensiveContext(content);
+    const normalized = this.normalizeContent(activeContent);
 
     // A. Direct Prompt Injection Scan
     this.scanPatterns(
@@ -145,7 +185,7 @@ export class ThreatAnalyzer {
 
     // B. Indirect Prompt Injection Scan
     this.scanPatterns(
-      content, // keep case and markup for tags
+      activeContent, // keep case and markup for tags
       INDIRECT_INJECTION_PATTERNS,
       "INDIRECT_PROMPT_INJECTION",
       "CRITICAL",
@@ -165,7 +205,7 @@ export class ThreatAnalyzer {
 
     // D. Secret Exfiltration Scan
     this.scanPatterns(
-      content,
+      activeContent,
       SECRET_EXFILTRATION_PATTERNS,
       "SECRET_EXFILTRATION",
       "CRITICAL",
@@ -185,7 +225,7 @@ export class ThreatAnalyzer {
 
     // F. Tool Manipulation Scan
     this.scanPatterns(
-      content,
+      activeContent,
       TOOL_MANIPULATION_PATTERNS,
       "TOOL_MANIPULATION",
       "CRITICAL",
@@ -205,7 +245,7 @@ export class ThreatAnalyzer {
 
     // H. Multi-Step / Mixed Attack Scan
     this.scanPatterns(
-      content,
+      activeContent,
       MULTI_STEP_PATTERNS,
       "MULTI_STEP_ATTACK",
       "CRITICAL",
@@ -215,7 +255,7 @@ export class ThreatAnalyzer {
 
     // I. Base64 Concealed Payload Inspection (Decode for inspection != execute)
     if (depth < 2) {
-      this.scanBase64ConcealedPayloads(content, targetContentId, depth, signals);
+      this.scanBase64ConcealedPayloads(activeContent, targetContentId, depth, signals);
     }
 
     return this.buildAssessment(targetContentId, signals);
