@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Kavach | Secure AI Agent Defense System",
+  title: "Kavach | Intelligent Protection for AI Agents",
   description:
-    "Kavach is a secure AI agent defense system designed to execute legitimate tasks while resisting indirect prompt injection, goal hijacking, privilege escalation, and unauthorized tool execution.",
+    "Kavach is an enterprise AI defense system providing intelligent protection for agents operating in untrusted environments.",
+  icons: {
+    icon: "/kavach-logo.svg",
+  },
 };
 
 export default function RootLayout({
@@ -13,8 +16,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen bg-slate-950 text-slate-100 antialiased selection:bg-indigo-500/30">
+    <html lang="en">
+      <body className="min-h-screen bg-[#FBF9F8] text-[#052326] antialiased selection:bg-[#C9A86A]/30">
         {children}
       </body>
     </html>

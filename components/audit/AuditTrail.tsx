@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react";
 import {
   ScrollText,
-  Shield,
   Search,
   RefreshCw,
   Trash2,
@@ -56,34 +55,35 @@ export function AuditTrail({ onNavigateToTrace }: AuditTrailProps = {}) {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-6 backdrop-blur space-y-4">
+      <div className="rounded-2xl border border-[#E8ECE9] bg-white p-6 shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <div className="flex items-center space-x-2 text-indigo-400 font-mono text-xs uppercase tracking-widest mb-1">
-              <ScrollText className="w-4 h-4 text-indigo-400" />
-              <span>Immutable Forensics & Security Logging</span>
+            <div className="flex items-center space-x-2 text-[#678882] font-mono text-xs uppercase tracking-widest mb-1">
+              <ScrollText className="w-4 h-4 text-[#2E595A]" />
+              <span>Cryptographic Compliance</span>
               <span>•</span>
-              <span className="text-emerald-400">Tamper-Evident Stream Active</span>
+              <span className="text-[#C9A86A]">Zero-Secret Forensics</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              KAVACH SECURITY AUDIT LOG
+            <h1 className="text-2xl font-serif font-bold text-[#052326]">
+              Tamper-Evident Audit Trail
             </h1>
-            <p className="text-slate-400 text-xs sm:text-sm mt-1">
-              Complete forensic record of every agent reasoning turn, tool request interception, threat classification, and policy enforcement decision.
+            <p className="text-[#2E595A] text-xs sm:text-sm mt-1">
+              Structured immutable security logs capturing agent reasoning cycles, gateway decisions, and parameter taint.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center space-x-2">
             <button
               onClick={refreshEvents}
-              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold uppercase tracking-wider transition-all"
+              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-[#FBF9F8] hover:bg-[#EBF1ED] border border-[#E8ECE9] text-[#052326] text-xs font-semibold transition-all"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className="w-3.5 h-3.5 text-[#2E595A]" />
               <span>Refresh</span>
             </button>
+
             <button
               onClick={handleClear}
-              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 text-xs transition-all"
+              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-white hover:bg-[#FAF5EB] border border-[#C9A86A]/40 text-[#C9A86A] text-xs font-semibold transition-all"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Clear Log</span>
@@ -91,204 +91,218 @@ export function AuditTrail({ onNavigateToTrace }: AuditTrailProps = {}) {
           </div>
         </div>
 
-        {/* Stats strip */}
-        <div className="pt-2 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
-          <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-            <span className="text-slate-500">Total Telemetry Events:</span>
-            <div className="text-white font-bold text-base mt-0.5">{stats.total}</div>
+        {/* Real-time stats chip bar */}
+        <div className="pt-3 border-t border-[#E8ECE9] grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+          <div className="p-3 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9]">
+            <span className="text-[#678882] block text-[10px] uppercase">Total Events</span>
+            <span className="text-base font-bold text-[#052326]">{stats.total}</span>
           </div>
-          <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-            <span className="text-slate-500">Blocked Interceptions:</span>
-            <div className="text-rose-400 font-bold text-base mt-0.5">{stats.blocked}</div>
+          <div className="p-3 rounded-xl bg-[#FAF5EB] border border-[#C9A86A]/30">
+            <span className="text-[#678882] block text-[10px] uppercase">Blocked Actions</span>
+            <span className="text-base font-bold text-[#C9A86A]">{stats.blocked}</span>
           </div>
-          <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-            <span className="text-slate-500">Approved Actions:</span>
-            <div className="text-emerald-400 font-bold text-base mt-0.5">{stats.approved}</div>
+          <div className="p-3 rounded-xl bg-[#EBF1ED] border border-[#A5B5A9]/30">
+            <span className="text-[#678882] block text-[10px] uppercase">Approved Actions</span>
+            <span className="text-base font-bold text-[#2E595A]">{stats.approved}</span>
           </div>
-          <div className="p-3 rounded-lg bg-slate-950 border border-slate-800">
-            <span className="text-slate-500">Confirmation Gates:</span>
-            <div className="text-amber-400 font-bold text-base mt-0.5">{stats.confirmation}</div>
+          <div className="p-3 rounded-xl bg-[#FBF9F8] border border-[#E8ECE9]">
+            <span className="text-[#678882] block text-[10px] uppercase">Zero Secrets</span>
+            <span className="text-base font-bold text-[#052326]">100% Redacted</span>
           </div>
         </div>
-      </div>
 
-      {/* Filter and Search Bar */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-4 backdrop-blur space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+        {/* Filter / Search Bar */}
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 text-[#678882] absolute left-3 top-2.5" />
             <input
               type="text"
-              placeholder="Search audit ID, reason, or tool..."
+              placeholder="Search event ID, reason, or tool..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-[#FBF9F8] border border-[#E8ECE9] text-xs font-mono text-[#052326] focus:outline-none focus:border-[#C9A86A]"
             />
           </div>
 
-          <div>
+          <div className="flex items-center space-x-2 self-start sm:self-center">
             <select
               value={filterDecision}
               onChange={(e) => setFilterDecision(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-300 font-mono focus:outline-none focus:border-indigo-500"
+              className="px-3 py-1.5 rounded-lg bg-[#FBF9F8] border border-[#E8ECE9] text-xs font-mono text-[#052326]"
             >
               <option value="ALL">Decision: All</option>
-              <option value="BLOCK">BLOCK</option>
               <option value="APPROVE">APPROVE</option>
+              <option value="BLOCK">BLOCK</option>
               <option value="REQUIRE_CONFIRMATION">REQUIRE_CONFIRMATION</option>
             </select>
-          </div>
 
-          <div>
             <select
               value={filterEventType}
               onChange={(e) => setFilterEventType(e.target.value)}
-              className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-300 font-mono focus:outline-none focus:border-indigo-500"
+              className="px-3 py-1.5 rounded-lg bg-[#FBF9F8] border border-[#E8ECE9] text-xs font-mono text-[#052326]"
             >
-              <option value="ALL">Event Type: All</option>
-              <option value="ATTACK_EVALUATION">ATTACK_EVALUATION</option>
-              <option value="SECURITY_BLOCKED">SECURITY_BLOCKED</option>
-              <option value="CONFIRMATION_REQUIRED">CONFIRMATION_REQUIRED</option>
-              <option value="POLICY_DECISION">POLICY_DECISION</option>
+              <option value="ALL">Event: All Types</option>
+              <option value="USER_REQUEST">USER_REQUEST</option>
+              <option value="TOOL_EXECUTION">TOOL_EXECUTION</option>
+              <option value="POLICY_ENFORCEMENT">POLICY_ENFORCEMENT</option>
+              <option value="THREAT_INTERCEPTED">THREAT_INTERCEPTED</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* Audit Log Table */}
-      <div className="rounded-xl border border-slate-800 bg-slate-900/40 backdrop-blur overflow-hidden">
-        {filtered.length === 0 ? (
-          <div className="p-8 text-center text-xs font-mono text-slate-500">
-            No audit records match the current filter criteria. Run attacks in Attack Lab to generate records.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono border-collapse">
-              <thead>
-                <tr className="border-b border-slate-800 bg-slate-950/80 text-[11px] text-slate-400 uppercase tracking-wider">
-                  <th className="py-2.5 px-3">Timestamp</th>
-                  <th className="py-2.5 px-3">Audit Event ID</th>
-                  <th className="py-2.5 px-3">Event Type</th>
-                  <th className="py-2.5 px-3">Test / Target ID</th>
-                  <th className="py-2.5 px-3">Tool</th>
-                  <th className="py-2.5 px-3">Decision</th>
-                  <th className="py-2.5 px-3">Threat</th>
-                  <th className="py-2.5 px-3">Reason</th>
-                  <th className="py-2.5 px-3 text-right">Details</th>
+      <div className="rounded-2xl border border-[#E8ECE9] bg-white shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs font-mono">
+            <thead className="bg-[#FBF9F8] border-b border-[#E8ECE9] text-[10px] uppercase text-[#678882] tracking-wider">
+              <tr>
+                <th className="py-3 px-4">Timestamp</th>
+                <th className="py-3 px-4">Event Type</th>
+                <th className="py-3 px-4">Decision</th>
+                <th className="py-3 px-4">Tool</th>
+                <th className="py-3 px-4">Reason / Details</th>
+                <th className="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E8ECE9]">
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-[#678882]">
+                    No audit records matching criteria.
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {filtered.map((evt) => (
+              ) : (
+                filtered.map((evt) => (
                   <tr
                     key={evt.id}
+                    className="hover:bg-[#FBF9F8] transition-colors cursor-pointer group"
                     onClick={() => setSelectedEvent(evt)}
-                    className="hover:bg-slate-800/40 transition-colors cursor-pointer"
                   >
-                    <td className="py-2.5 px-3 text-slate-400 text-[11px] whitespace-nowrap">
+                    <td className="py-3 px-4 text-[#678882] whitespace-nowrap">
                       {new Date(evt.timestamp).toLocaleTimeString()}
                     </td>
-                    <td className="py-2.5 px-3 font-bold text-white whitespace-nowrap">
-                      {evt.id}
-                    </td>
-                    <td className="py-2.5 px-3 text-slate-300 whitespace-nowrap">
+                    <td className="py-3 px-4 text-[#052326] font-semibold">
                       {evt.eventType}
                     </td>
-                    <td className="py-2.5 px-3 text-indigo-300 font-bold whitespace-nowrap">
-                      {evt.testId || "N/A"}
-                    </td>
-                    <td className="py-2.5 px-3 text-slate-400">
-                      {evt.toolName || "none"}
-                    </td>
-                    <td className="py-2.5 px-3">
+                    <td className="py-3 px-4 whitespace-nowrap">
                       <span
-                        className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold ${
+                        className={`text-[10px] px-2 py-0.5 rounded font-bold ${
                           evt.decision === "BLOCK"
-                            ? "bg-rose-950/80 border border-rose-800 text-rose-400"
+                            ? "bg-[#FAF5EB] text-[#C9A86A] border border-[#C9A86A]/40"
                             : evt.decision === "REQUIRE_CONFIRMATION"
-                            ? "bg-amber-950/80 border border-amber-800 text-amber-400"
-                            : "bg-emerald-950/80 border border-emerald-800 text-emerald-400"
+                            ? "bg-[#FAF5EB] text-[#C9A86A]"
+                            : "bg-[#EBF1ED] text-[#2E595A]"
                         }`}
                       >
                         {evt.decision}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3">
-                      {evt.threatDetected ? (
-                        <span className="text-rose-400 font-bold">YES</span>
-                      ) : (
-                        <span className="text-emerald-400">NO</span>
-                      )}
+                    <td className="py-3 px-4 text-[#2E595A]">
+                      {evt.toolName || evt.requestedTool || "—"}
                     </td>
-                    <td className="py-2.5 px-3 text-slate-300 max-w-sm truncate" title={evt.reason}>
-                      {evt.reason}
+                    <td className="py-3 px-4 text-[#678882] max-w-xs truncate">
+                      {evt.reason || "Evaluated by security policy"}
                     </td>
-                    <td className="py-2.5 px-3 text-right whitespace-nowrap space-x-2">
+                    <td className="py-3 px-4 text-right whitespace-nowrap">
                       {onNavigateToTrace && evt.correlationId && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             onNavigateToTrace(evt.correlationId);
                           }}
-                          className="inline-flex items-center space-x-1 text-slate-300 hover:text-indigo-400 font-mono text-[11px] px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800/80 transition-colors"
-                          title="Open 8-stage visual security trace"
+                          className="inline-flex items-center space-x-1 text-[11px] text-[#2E595A] hover:text-[#052326] font-semibold"
                         >
-                          <GitCommit className="w-3 h-3 text-indigo-400" />
+                          <GitCommit className="w-3 h-3" />
                           <span>Trace</span>
                         </button>
                       )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedEvent(evt);
-                        }}
-                        className="text-indigo-400 hover:text-indigo-300 underline text-xs"
-                      >
-                        Inspect
-                      </button>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Forensic Inspection Modal */}
+      {/* Selected Event Modal Drawer */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="max-w-2xl w-full rounded-xl border border-slate-800 bg-slate-900 p-6 space-y-4 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 bg-[#052326]/30 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl border border-[#E8ECE9] max-w-lg w-full p-6 shadow-xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E8ECE9]">
               <div className="flex items-center space-x-2">
-                <Shield className="w-5 h-5 text-indigo-400" />
-                <h3 className="font-bold text-white text-base">Forensic Event Record</h3>
-              </div>
-              <div className="flex items-center space-x-2">
-                {onNavigateToTrace && selectedEvent.correlationId && (
-                  <button
-                    onClick={() => {
-                      const corrId = selectedEvent.correlationId;
-                      setSelectedEvent(null);
-                      onNavigateToTrace(corrId);
-                    }}
-                    className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
-                  >
-                    <GitCommit className="w-3.5 h-3.5" />
-                    <span>View Lifecycle Trace</span>
-                  </button>
-                )}
-                <button
-                  onClick={() => setSelectedEvent(null)}
-                  className="text-slate-400 hover:text-white text-xs px-2.5 py-1 rounded bg-slate-800"
+                <span className="font-serif font-bold text-base text-[#052326]">
+                  Audit Record Details
+                </span>
+                <span
+                  className={`font-mono text-[10px] px-2 py-0.5 rounded font-bold ${
+                    selectedEvent.decision === "BLOCK"
+                      ? "bg-[#FAF5EB] text-[#C9A86A]"
+                      : "bg-[#EBF1ED] text-[#2E595A]"
+                  }`}
                 >
-                  Close
-                </button>
+                  {selectedEvent.decision}
+                </span>
               </div>
+              <button
+                onClick={() => setSelectedEvent(null)}
+                className="text-[#678882] hover:text-[#052326] text-xs font-mono"
+              >
+                ✕ Close
+              </button>
             </div>
 
-            <pre className="p-4 rounded-lg bg-slate-950 border border-slate-800 font-mono text-xs text-slate-200 overflow-x-auto whitespace-pre-wrap max-h-96">
-              {JSON.stringify(selectedEvent, null, 2)}
-            </pre>
+            <div className="space-y-2 text-xs font-mono">
+              <div className="p-3 rounded-lg bg-[#FBF9F8] border border-[#E8ECE9] space-y-1">
+                <div>ID: {selectedEvent.id}</div>
+                <div>Correlation ID: {selectedEvent.correlationId}</div>
+                <div>Event Type: {selectedEvent.eventType}</div>
+                <div>Source: {selectedEvent.source}</div>
+                <div>Tool Target: {selectedEvent.toolName || selectedEvent.requestedTool || "None"}</div>
+              </div>
+
+              <div>
+                <span className="text-[10px] uppercase font-bold text-[#678882] tracking-wider block mb-1">
+                  Enforcement Explanation:
+                </span>
+                <p className="p-2 rounded bg-[#FAF5EB] border border-[#C9A86A]/30 text-[#052326]">
+                  {selectedEvent.reason}
+                </p>
+              </div>
+
+              {selectedEvent.payloadSummary && (
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-[#678882] tracking-wider block mb-1">
+                    Sanitized Payload:
+                  </span>
+                  <pre className="p-2 rounded bg-[#FBF9F8] border border-[#E8ECE9] text-[10px] text-[#678882] overflow-x-auto">
+                    {selectedEvent.payloadSummary}
+                  </pre>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-3 border-t border-[#E8ECE9] flex justify-end space-x-2">
+              <button
+                onClick={() => setSelectedEvent(null)}
+                className="px-3 py-1.5 rounded-lg border border-[#E8ECE9] text-xs text-[#678882] hover:text-[#052326]"
+              >
+                Dismiss
+              </button>
+              {onNavigateToTrace && selectedEvent.correlationId && (
+                <button
+                  onClick={() => {
+                    const cid = selectedEvent.correlationId;
+                    setSelectedEvent(null);
+                    onNavigateToTrace(cid);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-[#052326] text-white text-xs font-semibold hover:bg-[#2E595A]"
+                >
+                  Inspect Full Trace
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
