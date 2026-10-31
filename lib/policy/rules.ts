@@ -100,6 +100,25 @@ export const BUILTIN_POLICY_RULES: SecurityPolicyRule[] = [
         }
       }
 
+      // If tool is state-mutating (edit_file), but user never asked to edit a file:
+      if (toolName === "edit_file") {
+        const userRequestedEdit =
+          userGoal.includes("edit") ||
+          userGoal.includes("modify") ||
+          userGoal.includes("write file") ||
+          userGoal.includes("update file");
+
+        if (!userRequestedEdit || ctx.trustContext.trustLevel === 1) {
+          return {
+            ruleId: "SEC-RULE-002",
+            ruleName: "GOAL_HIJACKING_PREVENTION",
+            description: "Agent attempted edit_file action that was not authorized by the user intent or originated from untrusted external content.",
+            action: "BLOCK",
+            severity: "CRITICAL",
+          };
+        }
+      }
+
       // Check for prompt injection markers embedded in parameters
       const rawParams = JSON.stringify(ctx.toolRequest.parameters);
       if (
@@ -176,7 +195,9 @@ export const BUILTIN_POLICY_RULES: SecurityPolicyRule[] = [
       const rawParams = JSON.stringify(ctx.toolRequest.parameters).toLowerCase();
       if (
         rawParams.includes("bypass confirmation") ||
+        rawParams.includes("bypass_confirmation") ||
         rawParams.includes("skip confirmation") ||
+        rawParams.includes("skip_confirmation") ||
         rawParams.includes("sudo") ||
         rawParams.includes("runas root")
       ) {
@@ -198,7 +219,7 @@ export const BUILTIN_POLICY_RULES: SecurityPolicyRule[] = [
     name: "CONSEQUENTIAL_ACTION_REQUIRES_CONFIRMATION",
     description: "Requires explicit user confirmation before executing state-mutating actions.",
     evaluate: (ctx) => {
-      if (ctx.toolMetadata.isConsequential || ctx.toolMetadata.requiresConfirmation) {
+      if (ctx.toolMetadata?.isConsequential || ctx.toolMetadata?.requiresConfirmation) {
         return {
           ruleId: "SEC-RULE-003",
           ruleName: "CONSEQUENTIAL_ACTION_REQUIRES_CONFIRMATION",
@@ -217,13 +238,35 @@ export const BUILTIN_POLICY_RULES: SecurityPolicyRule[] = [
     name: "AUTHORIZED_READ_OPERATION",
     description: "Permits read-only operations that align with user intent.",
     evaluate: (ctx) => {
-      if (ctx.toolMetadata.riskTier === "READ_ONLY" || ctx.toolMetadata.riskTier === "LOW_RISK") {
+      if (ctx.toolMetadata?.riskTier === "READ_ONLY" || ctx.toolMetadata?.riskTier === "LOW_RISK") {
         return {
           ruleId: "SEC-RULE-004",
           ruleName: "AUTHORIZED_READ_OPERATION",
           description: `Read-only operation "${ctx.toolRequest.toolName}" is approved.`,
           action: "APPROVE",
           severity: "LOW",
+        };
+      }
+      return null;
+    },
+  },
+
+  // 7. External Content Zero-Authority Invariant Rule
+  {
+    id: "SEC-RULE-007",
+    name: "EXTERNAL_CONTENT_ZERO_AUTHORITY",
+    description: "External content carries zero authority and can never authorize tool execution or change permissions.",
+    evaluate: (ctx) => {
+      if (
+        ctx.trustContext.trustLevel === 1 &&
+        (ctx.toolMetadata?.isConsequential || ctx.hasTaintedParameters)
+      ) {
+        return {
+          ruleId: "SEC-RULE-007",
+          ruleName: "EXTERNAL_CONTENT_ZERO_AUTHORITY",
+          description: "External content attempted to authorize consequential tool execution. Denied by Trust Hierarchy Invariant.",
+          action: "BLOCK",
+          severity: "CRITICAL",
         };
       }
       return null;

@@ -39,50 +39,104 @@ export class SecurityGateway {
     decision: PolicyDecision;
     threatAssessment: ThreatAssessment;
   }> {
-    const { toolRequest, trustContext, userObjective } = input;
+    try {
+      const { toolRequest, trustContext, userObjective } = input || {};
 
-    // 1. Resolve tool metadata
-    const tool = this.toolRegistry.getTool(toolRequest.toolName);
-    if (!tool) {
+      if (!toolRequest || !toolRequest.toolName) {
+        throw new Error("Malformed or missing tool request object");
+      }
+
+      const activeTrustContext = trustContext || {
+        contextId: "ctx-unknown",
+        source: "unknown",
+        trustLevel: 1,
+        isVerifiedUser: false,
+        taintFlags: ["taint:missing_context"],
+      };
+
+      // 1. Resolve tool metadata
+      const tool = this.toolRegistry.getTool(toolRequest.toolName);
+      if (!tool) {
+        const decision: PolicyDecision = {
+          id: `pol_${Date.now()}_unregistered`,
+          requestId: toolRequest.id || "req_unknown",
+          decision: "BLOCK",
+          reason: `Tool "${toolRequest.toolName}" is not registered in the system tool catalog.`,
+          matchedRules: [],
+          enforcedTrustLevel: activeTrustContext.trustLevel,
+          requiresHumanApproval: false,
+          evaluatedAt: new Date().toISOString(),
+        };
+        const threatAssessment = this.threatAnalyzer.analyzeContent(
+          toolRequest.id || "req_unknown",
+          JSON.stringify(toolRequest.parameters || {})
+        );
+        return { decision, threatAssessment };
+      }
+
+      // 2. Perform threat assessment on parameters
+      const threatAssessment = this.threatAnalyzer.analyzeContent(
+        toolRequest.id,
+        JSON.stringify(toolRequest.parameters || {})
+      );
+
+      // 3. Check taint propagation
+      const hasTaintedParameters = this.taintTracker.checkParametersForTaint(
+        toolRequest.parameters || {}
+      );
+
+      // 4. Evaluate deterministic policies
+      const decision = this.policyEngine.evaluate({
+        toolRequest,
+        toolMetadata: tool.metadata,
+        trustContext: activeTrustContext,
+        userObjective: userObjective || "",
+        hasTaintedParameters,
+        threatAssessment,
+      });
+
+      return { decision, threatAssessment };
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      const reqId = input?.toolRequest?.id || "req_fail_closed";
       const decision: PolicyDecision = {
-        id: `pol_${Date.now()}_unregistered`,
-        requestId: toolRequest.id,
+        id: `pol_fail_closed_${Date.now()}`,
+        requestId: reqId,
         decision: "BLOCK",
-        reason: `Tool "${toolRequest.toolName}" is not registered in the system tool catalog.`,
-        matchedRules: [],
-        enforcedTrustLevel: trustContext.trustLevel,
+        reason: `Security Gateway Fail-Closed: Unexpected error during security evaluation: ${errorMsg}`,
+        matchedRules: [
+          {
+            ruleId: "FAIL_CLOSED_SYSTEM_POLICY",
+            ruleName: "Fail-Closed Security Invariant",
+            description: "Block execution on internal security evaluation error",
+            action: "BLOCK",
+            severity: "CRITICAL",
+          },
+        ],
+        enforcedTrustLevel: 5,
         requiresHumanApproval: false,
         evaluatedAt: new Date().toISOString(),
       };
-      const threatAssessment = this.threatAnalyzer.analyzeContent(
-        toolRequest.id,
-        JSON.stringify(toolRequest.parameters)
-      );
+      const threatAssessment: ThreatAssessment = {
+        id: `threat_err_${Date.now()}`,
+        targetContentId: reqId,
+        isThreatDetected: true,
+        overallThreatLevel: "CRITICAL",
+        riskScore: 1.0,
+        signals: [
+          {
+            category: "DIRECT_PROMPT_INJECTION",
+            indicator: "SECURITY_EVALUATION_FAILURE",
+            severity: "CRITICAL",
+            confidence: 1.0,
+            evidenceSnippet: `Security evaluation failed closed: ${errorMsg}`,
+          },
+        ],
+        explanation: `Fail-closed security trigger: ${errorMsg}`,
+        analyzedAt: new Date().toISOString(),
+      };
       return { decision, threatAssessment };
     }
-
-    // 2. Perform threat assessment on parameters
-    const threatAssessment = this.threatAnalyzer.analyzeContent(
-      toolRequest.id,
-      JSON.stringify(toolRequest.parameters)
-    );
-
-    // 3. Check taint propagation
-    const hasTaintedParameters = this.taintTracker.checkParametersForTaint(
-      toolRequest.parameters
-    );
-
-    // 4. Evaluate deterministic policies
-    const decision = this.policyEngine.evaluate({
-      toolRequest,
-      toolMetadata: tool.metadata,
-      trustContext,
-      userObjective,
-      hasTaintedParameters,
-      threatAssessment,
-    });
-
-    return { decision, threatAssessment };
   }
 }
 

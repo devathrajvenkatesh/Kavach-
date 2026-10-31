@@ -63,115 +63,122 @@ export class AgentOrchestrator {
     const steps: AgentStepExecution[] = [];
     const toolExecutions: ToolResult[] = [];
 
-    // Log request reception
-    this.auditLogger.logEvent({
+    // Track active trust context dynamically across multi-step turns
+    let activeTrustContext = {
+      ...request.trustContext,
       correlationId,
-      eventType: "REQUEST_RECEIVED",
-      source: request.trustContext.source,
-      sourceType: request.trustContext.source,
-      sourceTrustLevel: request.trustContext.trustLevel,
-      userIntent: request.userPrompt,
-      payloadSummary: request.userPrompt.slice(0, 150),
-      decision: "APPROVE",
-      reason: "User request received by Butler orchestrator",
-    });
+    };
 
-    // Check if untrusted external content is entering the boundary
-    if (request.trustContext.trustLevel === 1 || request.trustContext.taintFlags.length > 0) {
+    try {
+      // Log request reception
       this.auditLogger.logEvent({
         correlationId,
-        eventType: "EXTERNAL_CONTENT_INGESTED",
+        eventType: "REQUEST_RECEIVED",
         source: request.trustContext.source,
         sourceType: request.trustContext.source,
         sourceTrustLevel: request.trustContext.trustLevel,
         userIntent: request.userPrompt,
         payloadSummary: request.userPrompt.slice(0, 150),
         decision: "APPROVE",
-        reason: "Untrusted external vector tagged with zero-authority data boundary",
-      });
-    }
-
-    // 1. Initialize conversation context with system prompt and authenticated user intent
-    const messages: LLMMessage[] = [
-      {
-        role: "system",
-        content: this.promptBuilder.buildSystemPrompt(),
-      },
-      {
-        role: "user",
-        content: request.userPrompt,
-      },
-    ];
-
-    let currentTurn = 0;
-    let finalContent = "";
-    let lastPolicyDecision = undefined;
-    let lastThreatAssessment = undefined;
-    let responseStatus: AgentResponse["status"] = "SUCCESS";
-
-    while (currentTurn < this.maxTurns) {
-      currentTurn++;
-
-      // 2. LLM reasons over the context
-      const availableTools = this.toolGateway.getAvailableToolMetadata();
-      const llmResponse = await this.provider.generateCompletion(messages, availableTools);
-
-      finalContent = llmResponse.content;
-
-      // 3. If no tool calls were requested, the reasoning loop has completed
-      if (!llmResponse.toolCalls || llmResponse.toolCalls.length === 0) {
-        steps.push({
-          stepIndex: currentTurn,
-          correlationId,
-          reasoning: llmResponse.content,
-          timestamp: new Date().toISOString(),
-        });
-        break;
-      }
-
-      // Record assistant reasoning with tool intent
-      messages.push({
-        role: "assistant",
-        content: llmResponse.content,
+        reason: "User request received by Butler orchestrator",
       });
 
-      // 4. Intercept and review each requested tool call
-      for (const toolCall of llmResponse.toolCalls) {
-        const toolRequest: ToolRequest = {
-          id: toolCall.id,
-          sessionId: request.sessionId,
-          correlationId,
-          toolName: toolCall.toolName,
-          parameters: toolCall.arguments,
-          trustContext: {
-            ...request.trustContext,
-            correlationId,
-            source: `agent_reasoning_step_${currentTurn}`,
-          },
-          requestedAt: new Date().toISOString(),
-        };
-
-        // Telemetry: Tool invocation intent logged
+      // Check if untrusted external content is entering the boundary
+      if (request.trustContext.trustLevel === 1 || request.trustContext.taintFlags.length > 0) {
         this.auditLogger.logEvent({
           correlationId,
-          eventType: "TOOL_REQUESTED",
-          source: toolRequest.trustContext.source,
-          sourceType: toolRequest.trustContext.source,
-          sourceTrustLevel: toolRequest.trustContext.trustLevel,
+          eventType: "EXTERNAL_CONTENT_INGESTED",
+          source: request.trustContext.source,
+          sourceType: request.trustContext.source,
+          sourceTrustLevel: request.trustContext.trustLevel,
           userIntent: request.userPrompt,
-          requestedTool: toolRequest.toolName,
-          toolArgumentsMetadata: toolRequest.parameters,
-          toolExecutionAttempted: true,
+          payloadSummary: request.userPrompt.slice(0, 150),
           decision: "APPROVE",
-          reason: `Agent reasoning formulated intent to invoke tool "${toolRequest.toolName}"`,
+          reason: "Untrusted external vector tagged with zero-authority data boundary",
+        });
+      }
+
+      // 1. Initialize conversation context with system prompt and authenticated user intent
+      const messages: LLMMessage[] = [
+        {
+          role: "system",
+          content: this.promptBuilder.buildSystemPrompt(),
+        },
+        {
+          role: "user",
+          content: request.userPrompt,
+        },
+      ];
+
+      let currentTurn = 0;
+      let finalContent = "";
+      let lastPolicyDecision = undefined;
+      let lastThreatAssessment = undefined;
+      let responseStatus: AgentResponse["status"] = "SUCCESS";
+
+      while (currentTurn < this.maxTurns) {
+        currentTurn++;
+
+        // 2. LLM reasons over the context
+        const availableTools = this.toolGateway.getAvailableToolMetadata();
+        const llmResponse = await this.provider.generateCompletion(messages, availableTools);
+
+        finalContent = llmResponse.content;
+
+        // 3. If no tool calls were requested, the reasoning loop has completed
+        if (!llmResponse.toolCalls || llmResponse.toolCalls.length === 0) {
+          steps.push({
+            stepIndex: currentTurn,
+            correlationId,
+            reasoning: llmResponse.content,
+            timestamp: new Date().toISOString(),
+          });
+          break;
+        }
+
+        // Record assistant reasoning with tool intent
+        messages.push({
+          role: "assistant",
+          content: llmResponse.content,
         });
 
-        // 5. SECURITY GATEWAY: Mandatory policy and threat evaluation
-        const { decision, threatAssessment } = await this.securityGateway.evaluateToolRequest({
-          toolRequest,
-          trustContext: request.trustContext,
-          userObjective: request.userPrompt,
-        });
+        // 4. Intercept and review each requested tool call
+        for (const toolCall of llmResponse.toolCalls) {
+          const toolRequest: ToolRequest = {
+            id: toolCall.id,
+            sessionId: request.sessionId,
+            correlationId,
+            toolName: toolCall.toolName,
+            parameters: toolCall.arguments,
+            trustContext: {
+              ...activeTrustContext,
+              correlationId,
+              source: `agent_reasoning_step_${currentTurn}`,
+            },
+            requestedAt: new Date().toISOString(),
+          };
+
+          // Telemetry: Tool invocation intent logged
+          this.auditLogger.logEvent({
+            correlationId,
+            eventType: "TOOL_REQUESTED",
+            source: toolRequest.trustContext.source,
+            sourceType: toolRequest.trustContext.source,
+            sourceTrustLevel: toolRequest.trustContext.trustLevel,
+            userIntent: request.userPrompt,
+            requestedTool: toolRequest.toolName,
+            toolArgumentsMetadata: toolRequest.parameters,
+            toolExecutionAttempted: true,
+            decision: "APPROVE",
+            reason: `Agent reasoning formulated intent to invoke tool "${toolRequest.toolName}"`,
+          });
+
+          // 5. SECURITY GATEWAY: Mandatory policy and threat evaluation
+          const { decision, threatAssessment } = await this.securityGateway.evaluateToolRequest({
+            toolRequest,
+            trustContext: activeTrustContext,
+            userObjective: request.userPrompt,
+          });
 
         decision.correlationId = correlationId;
         threatAssessment.correlationId = correlationId;
@@ -376,7 +383,34 @@ export class AgentOrchestrator {
           timestamp: new Date().toISOString(),
         });
 
-        // 6. Return tool output back to LLM framed with strict data boundaries
+        // 6. Taint Propagation: If tool output is external content, degrade active trust level & flag taint
+        if (toolResult.isExternalContent || toolResult.taintApplied.length > 0) {
+          activeTrustContext = {
+            ...activeTrustContext,
+            trustLevel: 1, // TrustLevel.EXTERNAL_CONTENT
+            taintFlags: Array.from(
+              new Set([
+                ...activeTrustContext.taintFlags,
+                ...toolResult.taintApplied,
+                "taint:external_content",
+              ])
+            ),
+          };
+
+          this.auditLogger.logEvent({
+            correlationId,
+            eventType: "EXTERNAL_CONTENT_INGESTED",
+            source: toolResult.toolName,
+            sourceType: "external_tool_output",
+            sourceTrustLevel: 1,
+            userIntent: request.userPrompt,
+            requestedTool: toolResult.toolName,
+            decision: "APPROVE",
+            reason: `External content ingested from tool "${toolResult.toolName}". Tagged with zero-authority data boundary.`,
+          });
+        }
+
+        // 7. Return tool output back to LLM framed with strict data boundaries
         const toolMessage = this.promptBuilder.formatToolResultForContext(toolResult);
         messages.push(toolMessage);
       }
@@ -399,5 +433,34 @@ export class AgentOrchestrator {
       },
       createdAt: new Date().toISOString(),
     };
+  } catch (err: unknown) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    this.auditLogger.logEvent({
+      correlationId,
+      eventType: "SECURITY_BLOCKED",
+      source: request.trustContext?.source || "orchestrator",
+      sourceType: "orchestrator_failure",
+      decision: "BLOCK",
+      policyDecision: "BLOCK",
+      finalOutcome: "ORCHESTRATOR_FAIL_CLOSED",
+      reason: `Orchestrator fail-closed: ${errorMsg}`,
+    });
+
+    return {
+      id: responseId,
+      requestId: request.id,
+      sessionId: request.sessionId,
+      correlationId,
+      status: "ERROR",
+      content: `[SECURITY FAIL-CLOSED] An internal processing exception occurred. Operation halted to prevent privilege escalation: ${errorMsg}`,
+      steps,
+      toolExecutions,
+      providerInfo: {
+        providerName: this.provider.providerName,
+        modelIdentifier: this.provider.modelIdentifier,
+      },
+      createdAt: new Date().toISOString(),
+    };
   }
+}
 }

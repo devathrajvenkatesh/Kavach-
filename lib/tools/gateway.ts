@@ -31,24 +31,15 @@ export class ToolGateway {
     const executedAt = new Date().toISOString();
 
     // 1. Verify policy decision is strictly APPROVE
-    if (policyDecision.decision === "BLOCK") {
+    if (!policyDecision || policyDecision.decision !== "APPROVE") {
+      const isConfirm = policyDecision?.decision === "REQUIRE_CONFIRMATION";
       return {
-        toolRequestId: request.id,
-        toolName: request.toolName,
-        status: "BLOCKED_BY_POLICY",
-        error: `Execution denied by Policy: ${policyDecision.reason}`,
-        isExternalContent: false,
-        taintApplied: [],
-        executedAt,
-      };
-    }
-
-    if (policyDecision.decision === "REQUIRE_CONFIRMATION") {
-      return {
-        toolRequestId: request.id,
-        toolName: request.toolName,
-        status: "AWAITING_APPROVAL",
-        error: `Action requires explicit human confirmation: ${policyDecision.reason}`,
+        toolRequestId: request?.id || "unknown",
+        toolName: request?.toolName || "unknown",
+        status: isConfirm ? "AWAITING_APPROVAL" : "BLOCKED_BY_POLICY",
+        error: isConfirm
+          ? `Action requires explicit human confirmation: ${policyDecision.reason}`
+          : `Execution denied by Policy: ${policyDecision?.reason || "Execution permitted only when PolicyDecision is explicitly APPROVE."}`,
         isExternalContent: false,
         taintApplied: [],
         executedAt,
