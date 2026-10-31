@@ -12,6 +12,7 @@ import {
   ToolMetadata,
   TrustContext,
   PolicyRuleMatch,
+  ThreatAssessment,
 } from "@/types";
 
 export interface PolicyEvaluationContext {
@@ -20,6 +21,7 @@ export interface PolicyEvaluationContext {
   trustContext: TrustContext;
   userObjective: string;
   hasTaintedParameters: boolean;
+  threatAssessment?: ThreatAssessment;
 }
 
 export interface SecurityPolicyRule {
@@ -29,7 +31,17 @@ export interface SecurityPolicyRule {
   evaluate: (ctx: PolicyEvaluationContext) => PolicyRuleMatch | null;
 }
 
-export const SENSITIVE_PATHS = [".env", ".env.local", "id_rsa", "credentials.json", "secrets.json", "/etc/passwd"];
+export const SENSITIVE_PATHS = [
+  ".env",
+  ".env.local",
+  ".env.production",
+  "id_rsa",
+  "id_ed25519",
+  "credentials.json",
+  "secrets.json",
+  "/etc/passwd",
+  "/etc/shadow",
+];
 
 export const BUILTIN_POLICY_RULES: SecurityPolicyRule[] = [
   // 1. Secret Protection & Sensitive File Access Rule
@@ -72,7 +84,7 @@ export const BUILTIN_POLICY_RULES: SecurityPolicyRule[] = [
       // If tool is state-mutating or exfiltrating (e.g. send_email), but user never asked to send an email:
       if (toolName === "send_email") {
         const userRequestedSend =
-          userGoal.includes("send") ||
+          userGoal.includes("send email") ||
           userGoal.includes("email to") ||
           userGoal.includes("forward to") ||
           userGoal.includes("compose");
@@ -94,7 +106,8 @@ export const BUILTIN_POLICY_RULES: SecurityPolicyRule[] = [
         rawParams.includes("SYSTEM OVERRIDE") ||
         rawParams.includes("system_override") ||
         rawParams.includes("ignore prior instructions") ||
-        rawParams.includes("disregard prior instructions")
+        rawParams.includes("disregard prior instructions") ||
+        rawParams.includes("ignore previous instructions")
       ) {
         return {
           ruleId: "SEC-RULE-002",
@@ -105,11 +118,81 @@ export const BUILTIN_POLICY_RULES: SecurityPolicyRule[] = [
         };
       }
 
+      // Check signals from threat analyzer
+      const goalHijackSignal = ctx.threatAssessment?.signals.find(
+        (s) => s.category === "GOAL_HIJACKING" && s.severity === "CRITICAL"
+      );
+      if (goalHijackSignal) {
+        return {
+          ruleId: "SEC-RULE-002",
+          ruleName: "GOAL_HIJACKING_PREVENTION",
+          description: `Goal hijacking detected: ${goalHijackSignal.indicator}`,
+          action: "BLOCK",
+          severity: "CRITICAL",
+        };
+      }
+
       return null;
     },
   },
 
-  // 3. Consequential Action Human Confirmation Rule
+  // 3. Tool Manipulation & Path Traversal Rule
+  {
+    id: "SEC-RULE-005",
+    name: "TOOL_MANIPULATION_PREVENTION",
+    description: "Blocks directory traversal, shell metacharacters, and malicious exfiltration destinations.",
+    evaluate: (ctx) => {
+      const rawParams = JSON.stringify(ctx.toolRequest.parameters);
+      if (/\.\.[\/\\]/.test(rawParams)) {
+        return {
+          ruleId: "SEC-RULE-005",
+          ruleName: "TOOL_MANIPULATION_PREVENTION",
+          description: "Path traversal sequence detected in tool parameters. Access denied.",
+          action: "BLOCK",
+          severity: "CRITICAL",
+        };
+      }
+
+      if (/@(evil\.com|attacker\.net)/i.test(rawParams) || /webhook\.site/i.test(rawParams)) {
+        return {
+          ruleId: "SEC-RULE-005",
+          ruleName: "TOOL_MANIPULATION_PREVENTION",
+          description: "Malicious external exfiltration destination detected in tool parameters.",
+          action: "BLOCK",
+          severity: "CRITICAL",
+        };
+      }
+
+      return null;
+    },
+  },
+
+  // 4. Privilege Escalation & Confirmation Bypass Rule
+  {
+    id: "SEC-RULE-006",
+    name: "PRIVILEGE_ESCALATION_PREVENTION",
+    description: "Blocks unauthorized privilege escalation and attempts to bypass human confirmation.",
+    evaluate: (ctx) => {
+      const rawParams = JSON.stringify(ctx.toolRequest.parameters).toLowerCase();
+      if (
+        rawParams.includes("bypass confirmation") ||
+        rawParams.includes("skip confirmation") ||
+        rawParams.includes("sudo") ||
+        rawParams.includes("runas root")
+      ) {
+        return {
+          ruleId: "SEC-RULE-006",
+          ruleName: "PRIVILEGE_ESCALATION_PREVENTION",
+          description: "Attempted privilege escalation or confirmation bypass. Access denied by System Policy.",
+          action: "BLOCK",
+          severity: "CRITICAL",
+        };
+      }
+      return null;
+    },
+  },
+
+  // 5. Consequential Action Human Confirmation Rule
   {
     id: "SEC-RULE-003",
     name: "CONSEQUENTIAL_ACTION_REQUIRES_CONFIRMATION",
@@ -128,7 +211,7 @@ export const BUILTIN_POLICY_RULES: SecurityPolicyRule[] = [
     },
   },
 
-  // 4. Safe Read Operation Rule
+  // 6. Safe Read Operation Rule
   {
     id: "SEC-RULE-004",
     name: "AUTHORIZED_READ_OPERATION",

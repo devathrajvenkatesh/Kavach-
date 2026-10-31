@@ -79,6 +79,7 @@ export class SecurityGateway {
       trustContext,
       userObjective,
       hasTaintedParameters,
+      threatAssessment,
     });
 
     return { decision, threatAssessment };
