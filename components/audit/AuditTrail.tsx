@@ -7,10 +7,15 @@ import {
   Search,
   RefreshCw,
   Trash2,
+  GitCommit,
 } from "lucide-react";
 import { defaultAuditLogger, AuditEvent } from "@/lib/audit/logger";
 
-export function AuditTrail() {
+interface AuditTrailProps {
+  onNavigateToTrace?: (correlationId?: string) => void;
+}
+
+export function AuditTrail({ onNavigateToTrace }: AuditTrailProps = {}) {
   const [events, setEvents] = useState<AuditEvent[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filterDecision, setFilterDecision] = useState<string>("ALL");
@@ -217,7 +222,20 @@ export function AuditTrail() {
                     <td className="py-2.5 px-3 text-slate-300 max-w-sm truncate" title={evt.reason}>
                       {evt.reason}
                     </td>
-                    <td className="py-2.5 px-3 text-right">
+                    <td className="py-2.5 px-3 text-right whitespace-nowrap space-x-2">
+                      {onNavigateToTrace && evt.correlationId && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onNavigateToTrace(evt.correlationId);
+                          }}
+                          className="inline-flex items-center space-x-1 text-slate-300 hover:text-indigo-400 font-mono text-[11px] px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800/80 transition-colors"
+                          title="Open 8-stage visual security trace"
+                        >
+                          <GitCommit className="w-3 h-3 text-indigo-400" />
+                          <span>Trace</span>
+                        </button>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -245,12 +263,27 @@ export function AuditTrail() {
                 <Shield className="w-5 h-5 text-indigo-400" />
                 <h3 className="font-bold text-white text-base">Forensic Event Record</h3>
               </div>
-              <button
-                onClick={() => setSelectedEvent(null)}
-                className="text-slate-400 hover:text-white text-xs px-2.5 py-1 rounded bg-slate-800"
-              >
-                Close
-              </button>
+              <div className="flex items-center space-x-2">
+                {onNavigateToTrace && selectedEvent.correlationId && (
+                  <button
+                    onClick={() => {
+                      const corrId = selectedEvent.correlationId;
+                      setSelectedEvent(null);
+                      onNavigateToTrace(corrId);
+                    }}
+                    className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                  >
+                    <GitCommit className="w-3.5 h-3.5" />
+                    <span>View Lifecycle Trace</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedEvent(null)}
+                  className="text-slate-400 hover:text-white text-xs px-2.5 py-1 rounded bg-slate-800"
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             <pre className="p-4 rounded-lg bg-slate-950 border border-slate-800 font-mono text-xs text-slate-200 overflow-x-auto whitespace-pre-wrap max-h-96">

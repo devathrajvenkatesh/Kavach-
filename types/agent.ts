@@ -10,6 +10,7 @@ import { PolicyDecision } from "./policy";
 export interface AgentRequest {
   id: string;
   sessionId: string;
+  correlationId?: string;
   userPrompt: string;
   trustContext: TrustContext;
   createdAt: string;
@@ -24,6 +25,7 @@ export type AgentResponseStatus =
 
 export interface AgentStepExecution {
   stepIndex: number;
+  correlationId?: string;
   reasoning?: string;
   toolRequest?: ToolRequest;
   policyDecision?: PolicyDecision;
@@ -35,6 +37,7 @@ export interface AgentResponse {
   id: string;
   requestId: string;
   sessionId: string;
+  correlationId?: string;
   status: AgentResponseStatus;
   content: string;
   steps: AgentStepExecution[];

@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { Shield, Terminal, FlaskConical, ScrollText, Activity, Flame } from "lucide-react";
+import { Shield, Terminal, FlaskConical, ScrollText, Activity, Flame, GitCommit } from "lucide-react";
 
-export type NavSection = "command-center" | "attack-lab" | "live-demo" | "audit" | "butler";
+export type NavSection = "command-center" | "attack-lab" | "live-demo" | "audit" | "trace" | "butler";
 
 interface NavbarProps {
   activeSection: NavSection;
@@ -15,6 +15,7 @@ export const navigationItems: { id: NavSection; label: string; icon: React.Compo
   { id: "attack-lab", label: "Attack Lab", icon: FlaskConical },
   { id: "live-demo", label: "Live Demo", icon: Flame },
   { id: "audit", label: "Audit Log", icon: ScrollText },
+  { id: "trace", label: "Security Traces", icon: GitCommit },
   { id: "butler", label: "Architecture", icon: Terminal },
 ];
 

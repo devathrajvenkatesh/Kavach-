@@ -14,30 +14,37 @@ import {
   Cpu,
   ArrowRight,
   Layers,
+  GitCommit,
 } from "lucide-react";
-import { defaultAuditLogger, AuditEvent } from "@/lib/audit/logger";
+import { defaultAuditLogger, AuditEvent, TelemetryMetrics } from "@/lib/audit/logger";
 import { DATASET_CATEGORIES } from "@/lib/attack-lab/dataset-loader";
 
 interface CommandCenterProps {
   onNavigateToAttackLab: (category?: string) => void;
   onNavigateToLiveDemo: () => void;
+  onNavigateToTrace?: (correlationId?: string) => void;
 }
 
 export function CommandCenter({
   onNavigateToAttackLab,
   onNavigateToLiveDemo,
+  onNavigateToTrace,
 }: CommandCenterProps) {
   const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [telemetry, setTelemetry] = useState<TelemetryMetrics>(() =>
+    defaultAuditLogger.getTelemetryMetrics()
+  );
   const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null);
   const [filterSeverity, setFilterSeverity] = useState<string>("ALL");
 
   useEffect(() => {
-    // Initial fetch of audit events
-    const initialEvents = defaultAuditLogger.getRecentEvents(30);
-    setEvents(initialEvents);
+    // Initial fetch of audit events and telemetry
+    setEvents(defaultAuditLogger.getRecentEvents(30));
+    setTelemetry(defaultAuditLogger.getTelemetryMetrics());
 
     const interval = setInterval(() => {
       setEvents(defaultAuditLogger.getRecentEvents(30));
+      setTelemetry(defaultAuditLogger.getTelemetryMetrics());
     }, 1500);
 
     return () => clearInterval(interval);
@@ -133,19 +140,32 @@ export function CommandCenter({
               <Layers className="w-4 h-4 text-indigo-400" />
               <span>Open Attack Lab (138 Cases)</span>
             </button>
+            {onNavigateToTrace && (
+              <button
+                onClick={() => onNavigateToTrace()}
+                className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold uppercase tracking-wider transition-all active:scale-95"
+              >
+                <GitCommit className="w-4 h-4 text-emerald-400" />
+                <span>Security Traces</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Top 8 KPI Cards */}
+      {/* Top 8 Dynamic KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         {/* KPI 1 */}
         <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 backdrop-blur flex flex-col justify-between">
           <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
             Attacks Tested
           </span>
-          <div className="mt-2 text-2xl font-bold font-mono text-white">112</div>
-          <span className="text-[10px] text-indigo-400 mt-1">8 Categories</span>
+          <div className="mt-2 text-2xl font-bold font-mono text-white">
+            {telemetry.attacksTested}
+          </div>
+          <span className="text-[10px] text-indigo-400 mt-1">
+            {telemetry.totalEventsLogged} telemetry events
+          </span>
         </div>
 
         {/* KPI 2 */}
@@ -153,8 +173,12 @@ export function CommandCenter({
           <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
             Attacks Blocked
           </span>
-          <div className="mt-2 text-2xl font-bold font-mono text-emerald-400">112</div>
-          <span className="text-[10px] text-emerald-400/80 mt-1">100% Intercepted</span>
+          <div className="mt-2 text-2xl font-bold font-mono text-emerald-400">
+            {telemetry.attacksBlocked}
+          </div>
+          <span className="text-[10px] text-emerald-400/80 mt-1">
+            {telemetry.blockRate.toFixed(1)}% Intercepted
+          </span>
         </div>
 
         {/* KPI 3 */}
@@ -162,8 +186,12 @@ export function CommandCenter({
           <span className="text-[10px] font-mono uppercase tracking-wider text-emerald-400">
             Defense Rate
           </span>
-          <div className="mt-2 text-2xl font-black font-mono text-emerald-300">100%</div>
-          <span className="text-[10px] text-emerald-400/80 mt-1">Benchmark Verified</span>
+          <div className="mt-2 text-2xl font-black font-mono text-emerald-300">
+            {telemetry.blockRate.toFixed(1)}%
+          </div>
+          <span className="text-[10px] text-emerald-400/80 mt-1">
+            {telemetry.detectionRate.toFixed(1)}% Detected
+          </span>
         </div>
 
         {/* KPI 4 */}
@@ -171,8 +199,12 @@ export function CommandCenter({
           <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
             False Positive Rate
           </span>
-          <div className="mt-2 text-2xl font-bold font-mono text-emerald-400">0.0%</div>
-          <span className="text-[10px] text-slate-400 mt-1">22/22 Benign Passed</span>
+          <div className="mt-2 text-2xl font-bold font-mono text-emerald-400">
+            {telemetry.falsePositives === 0 ? "0.0%" : ((telemetry.falsePositives / 22) * 100).toFixed(1) + "%"}
+          </div>
+          <span className="text-[10px] text-slate-400 mt-1">
+            {telemetry.falsePositives} / 22 Benign Flagged
+          </span>
         </div>
 
         {/* KPI 5 */}
@@ -180,8 +212,12 @@ export function CommandCenter({
           <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
             Possession Rate
           </span>
-          <div className="mt-2 text-2xl font-bold font-mono text-emerald-400">0.0%</div>
-          <span className="text-[10px] text-slate-400 mt-1">Zero Hijack Succeeded</span>
+          <div className="mt-2 text-2xl font-bold font-mono text-emerald-400">
+            {telemetry.possessionRate.toFixed(1)}%
+          </div>
+          <span className="text-[10px] text-slate-400 mt-1">
+            {telemetry.attacksMissed} Missed Attacks
+          </span>
         </div>
 
         {/* KPI 6 */}
@@ -189,17 +225,25 @@ export function CommandCenter({
           <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
             Unauthorized Exec
           </span>
-          <div className="mt-2 text-2xl font-bold font-mono text-emerald-400">0</div>
-          <span className="text-[10px] text-slate-400 mt-1">Zero Tool Bypass</span>
+          <div className="mt-2 text-2xl font-bold font-mono text-emerald-400">
+            {telemetry.unauthorizedExecutions}
+          </div>
+          <span className="text-[10px] text-slate-400 mt-1">
+            Zero Tool Bypass
+          </span>
         </div>
 
         {/* KPI 7 */}
         <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4 backdrop-blur flex flex-col justify-between">
           <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
-            Secret Leaks
+            Secret Access
           </span>
-          <div className="mt-2 text-2xl font-bold font-mono text-emerald-400">0</div>
-          <span className="text-[10px] text-slate-400 mt-1">Canaries & Keys Intact</span>
+          <div className="mt-2 text-2xl font-bold font-mono text-emerald-400">
+            {telemetry.secretAccessAttempts}
+          </div>
+          <span className="text-[10px] text-slate-400 mt-1">
+            Attempts Intercepted
+          </span>
         </div>
 
         {/* KPI 8 */}
@@ -207,8 +251,10 @@ export function CommandCenter({
           <span className="text-[10px] font-mono uppercase tracking-wider text-indigo-300">
             Regression Status
           </span>
-          <div className="mt-2 text-xl font-bold font-mono text-indigo-300">4/4 PASS</div>
-          <span className="text-[10px] text-indigo-400 mt-1">100% Tripwires Active</span>
+          <div className="mt-2 text-base font-bold font-mono text-indigo-300 truncate" title={telemetry.regressionStatus}>
+            {telemetry.regressionStatus}
+          </div>
+          <span className="text-[10px] text-indigo-400 mt-1">Tripwires Active</span>
         </div>
       </div>
 
@@ -298,8 +344,10 @@ export function CommandCenter({
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-base font-bold font-mono text-emerald-400">112 / 112</div>
-                  <div className="text-[10px] font-mono text-slate-400">100.0% Block Rate</div>
+                  <div className="text-base font-bold font-mono text-emerald-400">
+                    {telemetry.attacksBlocked} / {telemetry.attacksTested}
+                  </div>
+                  <div className="text-[10px] font-mono text-slate-400">{telemetry.blockRate.toFixed(1)}% Block Rate</div>
                 </div>
               </div>
 
@@ -315,8 +363,12 @@ export function CommandCenter({
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-base font-bold font-mono text-emerald-400">22 / 22</div>
-                  <div className="text-[10px] font-mono text-slate-400">100.0% Task Success</div>
+                  <div className="text-base font-bold font-mono text-emerald-400">
+                    {Math.max(0, 22 - telemetry.falsePositives)} / 22
+                  </div>
+                  <div className="text-[10px] font-mono text-slate-400">
+                    {telemetry.falsePositives === 0 ? "100.0%" : (((22 - telemetry.falsePositives) / 22) * 100).toFixed(1) + "%"} Success
+                  </div>
                 </div>
               </div>
 
@@ -332,8 +384,10 @@ export function CommandCenter({
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-base font-bold font-mono text-slate-200">0 / 112</div>
-                  <div className="text-[10px] font-mono text-slate-500">0.0% Miss Rate</div>
+                  <div className="text-base font-bold font-mono text-slate-200">
+                    {telemetry.attacksMissed} / {telemetry.attacksTested}
+                  </div>
+                  <div className="text-[10px] font-mono text-slate-500">{telemetry.possessionRate.toFixed(1)}% Miss Rate</div>
                 </div>
               </div>
 
@@ -349,9 +403,21 @@ export function CommandCenter({
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-base font-bold font-mono text-slate-200">0 / 22</div>
-                  <div className="text-[10px] font-mono text-slate-500">0.0% FPR</div>
+                  <div className="text-base font-bold font-mono text-slate-200">
+                    {telemetry.falsePositives} / 22
+                  </div>
+                  <div className="text-[10px] font-mono text-slate-500">
+                    {telemetry.falsePositives === 0 ? "0.0%" : ((telemetry.falsePositives / 22) * 100).toFixed(1) + "%"} FPR
+                  </div>
                 </div>
+              </div>
+
+              {/* Empirical Interception Latency */}
+              <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs font-mono">
+                <span className="text-slate-400">Interception Latency:</span>
+                <span className="text-emerald-400 font-bold">
+                  avg {telemetry.averageLatencyMs}ms / p95 {telemetry.p95LatencyMs}ms
+                </span>
               </div>
             </div>
           </div>
@@ -492,7 +558,20 @@ export function CommandCenter({
                     <td className="py-2.5 px-3 text-slate-300 max-w-xs truncate" title={evt.reason}>
                       {evt.reason}
                     </td>
-                    <td className="py-2.5 px-3 text-right">
+                    <td className="py-2.5 px-3 text-right whitespace-nowrap space-x-2">
+                      {onNavigateToTrace && evt.correlationId && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onNavigateToTrace(evt.correlationId);
+                          }}
+                          className="inline-flex items-center space-x-1 text-slate-300 hover:text-indigo-400 font-mono text-[11px] px-1.5 py-0.5 rounded border border-slate-700 bg-slate-800/80 transition-colors"
+                          title="Open 8-stage visual security trace"
+                        >
+                          <GitCommit className="w-3 h-3 text-indigo-400" />
+                          <span>Trace</span>
+                        </button>
+                      )}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -520,12 +599,27 @@ export function CommandCenter({
                 <Shield className="w-5 h-5 text-indigo-400" />
                 <h3 className="font-bold text-white text-base">Security Event Inspection</h3>
               </div>
-              <button
-                onClick={() => setSelectedEvent(null)}
-                className="text-slate-400 hover:text-white text-sm px-2 py-1 rounded bg-slate-800"
-              >
-                Close
-              </button>
+              <div className="flex items-center space-x-2">
+                {onNavigateToTrace && selectedEvent.correlationId && (
+                  <button
+                    onClick={() => {
+                      const corrId = selectedEvent.correlationId;
+                      setSelectedEvent(null);
+                      onNavigateToTrace(corrId);
+                    }}
+                    className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                  >
+                    <GitCommit className="w-3.5 h-3.5" />
+                    <span>View Trace</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedEvent(null)}
+                  className="text-slate-400 hover:text-white text-sm px-2 py-1 rounded bg-slate-800"
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 text-xs font-mono">

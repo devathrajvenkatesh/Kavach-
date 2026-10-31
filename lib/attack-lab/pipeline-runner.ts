@@ -118,10 +118,13 @@ export class PipelineRunner {
       },
     ]);
 
+    const correlationId = `trace_${testCase.id}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
     // 4. Construct strictly isolated AgentRequest
     const trustContext: TrustContext = isBenign
       ? {
           contextId: `ctx_${testCase.id}`,
+          correlationId,
           source: "authenticated_user",
           trustLevel: TrustLevel.USER_INTENT,
           isVerifiedUser: true,
@@ -129,6 +132,7 @@ export class PipelineRunner {
         }
       : {
           contextId: `ctx_${testCase.id}`,
+          correlationId,
           source: testCase.sourceType || "untrusted_external",
           trustLevel: TrustLevel.EXTERNAL_CONTENT,
           isVerifiedUser: false,
@@ -138,6 +142,7 @@ export class PipelineRunner {
     const agentRequest: AgentRequest = {
       id: `req_${testCase.id}_${Date.now()}`,
       sessionId: `session_${testCase.id}`,
+      correlationId,
       userPrompt: isBenign ? testCase.payload : testCase.userIntent || testCase.payload,
       trustContext,
       createdAt: new Date().toISOString(),
@@ -186,22 +191,92 @@ export class PipelineRunner {
       directThreat.explanation ||
       (finalResult === "ALLOWED_BENIGN_TASK" ? "Benign task authorized and completed safely." : "Action intercepted by security policy.");
 
-    // 8. Commit to Audit Logger
+    // 8. Commit Evaluation & Outcome Events to Audit Logger
     this.auditLogger.logEvent({
+      correlationId,
       testId: testCase.id,
+      attackId: testCase.id,
       category: testCase.category,
+      threatCategory: testCase.category,
       severity: testCase.severity,
       sourceType: testCase.sourceType,
       source: trustContext.source,
+      userIntent: testCase.userIntent,
       eventType: "ATTACK_EVALUATION",
       decision: actualDecision,
+      policyDecision: actualDecision,
+      policyRuleTriggered: agentResponse.lastPolicyDecision?.matchedRules?.[0]?.ruleId,
       reason,
       threatDetected,
       threatLevel,
       toolName,
+      toolExecutionAttempted,
+      toolExecutionResult: toolExecuted ? "SUCCESS" : "BLOCKED_BY_POLICY",
+      finalOutcome: finalResult,
       latencyMs,
       payloadSummary: testCase.payload.slice(0, 120),
     });
+
+    if (finalResult === "BLOCKED_ATTACK") {
+      this.auditLogger.logEvent({
+        correlationId,
+        testId: testCase.id,
+        attackId: testCase.id,
+        category: testCase.category,
+        threatCategory: testCase.category,
+        severity: testCase.severity,
+        source: trustContext.source,
+        sourceType: testCase.sourceType,
+        userIntent: testCase.userIntent,
+        eventType: "ATTACK_BLOCKED",
+        decision: "BLOCK",
+        policyDecision: "BLOCK",
+        finalOutcome: "ATTACK_BLOCKED",
+        reason: `Attack vector neutralized: ${reason}`,
+        threatDetected: true,
+        toolExecutionAttempted: true,
+        toolExecutionResult: "BLOCKED_BY_POLICY",
+        latencyMs,
+      });
+    } else if (finalResult === "REGRESSION_FAILURE") {
+      this.auditLogger.logEvent({
+        correlationId,
+        testId: testCase.id,
+        attackId: testCase.id,
+        category: "REGRESSION",
+        threatCategory: "REGRESSION",
+        severity: "CRITICAL",
+        source: trustContext.source,
+        sourceType: testCase.sourceType,
+        userIntent: testCase.userIntent,
+        eventType: "REGRESSION_FAILED",
+        decision: actualDecision,
+        policyDecision: actualDecision,
+        finalOutcome: "REGRESSION_FAILURE",
+        reason: `Security regression failed: vector allowed through policy gate`,
+        threatDetected: false,
+        latencyMs,
+      });
+    } else if (finalResult === "MISSED_ATTACK") {
+      this.auditLogger.logEvent({
+        correlationId,
+        testId: testCase.id,
+        attackId: testCase.id,
+        category: testCase.category,
+        threatCategory: testCase.category,
+        severity: testCase.severity,
+        source: trustContext.source,
+        sourceType: testCase.sourceType,
+        userIntent: testCase.userIntent,
+        eventType: "ATTACK_MISSED",
+        decision: "APPROVE",
+        policyDecision: "APPROVE",
+        finalOutcome: "MISSED_ATTACK",
+        reason: `Adversarial bypass detected: attack payload was not intercepted`,
+        threatDetected: false,
+        latencyMs,
+      });
+    }
 
     return {
       id: testCase.id,

@@ -20,6 +20,7 @@ export interface PolicyRuleMatch {
 export interface PolicyDecision {
   id: string;
   requestId: string;
+  correlationId?: string;
   decision: PolicyDecisionOutcome;
   reason: string;
   matchedRules: PolicyRuleMatch[];

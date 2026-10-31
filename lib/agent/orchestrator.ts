@@ -55,8 +55,41 @@ export class AgentOrchestrator {
 
   async processRequest(request: AgentRequest): Promise<AgentResponse> {
     const responseId = `resp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    const correlationId =
+      request.correlationId ||
+      request.id ||
+      `corr_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
     const steps: AgentStepExecution[] = [];
     const toolExecutions: ToolResult[] = [];
+
+    // Log request reception
+    this.auditLogger.logEvent({
+      correlationId,
+      eventType: "REQUEST_RECEIVED",
+      source: request.trustContext.source,
+      sourceType: request.trustContext.source,
+      sourceTrustLevel: request.trustContext.trustLevel,
+      userIntent: request.userPrompt,
+      payloadSummary: request.userPrompt.slice(0, 150),
+      decision: "APPROVE",
+      reason: "User request received by Butler orchestrator",
+    });
+
+    // Check if untrusted external content is entering the boundary
+    if (request.trustContext.trustLevel === 1 || request.trustContext.taintFlags.length > 0) {
+      this.auditLogger.logEvent({
+        correlationId,
+        eventType: "EXTERNAL_CONTENT_INGESTED",
+        source: request.trustContext.source,
+        sourceType: request.trustContext.source,
+        sourceTrustLevel: request.trustContext.trustLevel,
+        userIntent: request.userPrompt,
+        payloadSummary: request.userPrompt.slice(0, 150),
+        decision: "APPROVE",
+        reason: "Untrusted external vector tagged with zero-authority data boundary",
+      });
+    }
 
     // 1. Initialize conversation context with system prompt and authenticated user intent
     const messages: LLMMessage[] = [
@@ -89,6 +122,7 @@ export class AgentOrchestrator {
       if (!llmResponse.toolCalls || llmResponse.toolCalls.length === 0) {
         steps.push({
           stepIndex: currentTurn,
+          correlationId,
           reasoning: llmResponse.content,
           timestamp: new Date().toISOString(),
         });
@@ -106,14 +140,31 @@ export class AgentOrchestrator {
         const toolRequest: ToolRequest = {
           id: toolCall.id,
           sessionId: request.sessionId,
+          correlationId,
           toolName: toolCall.toolName,
           parameters: toolCall.arguments,
           trustContext: {
             ...request.trustContext,
+            correlationId,
             source: `agent_reasoning_step_${currentTurn}`,
           },
           requestedAt: new Date().toISOString(),
         };
+
+        // Telemetry: Tool invocation intent logged
+        this.auditLogger.logEvent({
+          correlationId,
+          eventType: "TOOL_REQUESTED",
+          source: toolRequest.trustContext.source,
+          sourceType: toolRequest.trustContext.source,
+          sourceTrustLevel: toolRequest.trustContext.trustLevel,
+          userIntent: request.userPrompt,
+          requestedTool: toolRequest.toolName,
+          toolArgumentsMetadata: toolRequest.parameters,
+          toolExecutionAttempted: true,
+          decision: "APPROVE",
+          reason: `Agent reasoning formulated intent to invoke tool "${toolRequest.toolName}"`,
+        });
 
         // 5. SECURITY GATEWAY: Mandatory policy and threat evaluation
         const { decision, threatAssessment } = await this.securityGateway.evaluateToolRequest({
@@ -122,13 +173,47 @@ export class AgentOrchestrator {
           userObjective: request.userPrompt,
         });
 
+        decision.correlationId = correlationId;
+        threatAssessment.correlationId = correlationId;
+
         lastPolicyDecision = decision;
         lastThreatAssessment = threatAssessment;
+
+        // Telemetry: Threat detection event
+        if (threatAssessment.isThreatDetected) {
+          this.auditLogger.logEvent({
+            correlationId,
+            eventType: "THREAT_DETECTED",
+            source: toolRequest.trustContext.source,
+            sourceType: toolRequest.trustContext.source,
+            threatCategory: threatAssessment.signals[0]?.category,
+            severity: threatAssessment.overallThreatLevel,
+            detectedIndicators: threatAssessment.signals.map((s) => s.indicator),
+            decision: decision.decision,
+            reason: threatAssessment.explanation,
+            threatDetected: true,
+            threatLevel: threatAssessment.overallThreatLevel,
+          });
+        }
+
+        // Telemetry: Policy evaluated event
+        this.auditLogger.logEvent({
+          correlationId,
+          eventType: "POLICY_EVALUATED",
+          source: toolRequest.trustContext.source,
+          sourceType: toolRequest.trustContext.source,
+          policyRuleTriggered: decision.matchedRules[0]?.ruleId,
+          policyDecision: decision.decision,
+          decision: decision.decision,
+          confirmationRequirement: decision.decision === "REQUIRE_CONFIRMATION",
+          reason: decision.reason,
+        });
 
         // Case A: Policy Decision is BLOCK
         if (decision.decision === "BLOCK") {
           const blockedResult: ToolResult = {
             toolRequestId: toolRequest.id,
+            correlationId,
             toolName: toolRequest.toolName,
             status: "BLOCKED_BY_POLICY",
             error: `Security Policy Violation: ${decision.reason}`,
@@ -140,6 +225,7 @@ export class AgentOrchestrator {
           toolExecutions.push(blockedResult);
           steps.push({
             stepIndex: currentTurn,
+            correlationId,
             reasoning: llmResponse.content,
             toolRequest,
             policyDecision: decision,
@@ -147,24 +233,40 @@ export class AgentOrchestrator {
             timestamp: new Date().toISOString(),
           });
 
-          // Terminate the compromised loop and alert the user
+          const isSecretTarget =
+            decision.reason.toLowerCase().includes(".env") ||
+            decision.reason.toLowerCase().includes("secret") ||
+            decision.reason.toLowerCase().includes("credential") ||
+            decision.reason.toLowerCase().includes("key");
+
+          // Telemetry: Tool blocked & Attack intercepted
           this.auditLogger.logEvent({
+            correlationId,
+            eventType: isSecretTarget ? "SECRET_ACCESS_BLOCKED" : "TOOL_BLOCKED",
             source: toolRequest.trustContext.source,
-            eventType: "SECURITY_BLOCKED",
+            sourceType: toolRequest.trustContext.source,
+            requestedTool: toolRequest.toolName,
+            toolArgumentsMetadata: toolRequest.parameters,
+            policyRuleTriggered: decision.matchedRules[0]?.ruleId,
+            policyDecision: "BLOCK",
             decision: "BLOCK",
+            threatCategory: threatAssessment.signals[0]?.category,
+            severity: threatAssessment.overallThreatLevel,
+            toolExecutionAttempted: true,
+            toolExecutionResult: "BLOCKED_BY_POLICY",
+            finalOutcome: "ATTACK_BLOCKED",
             reason: decision.reason,
-            threatDetected: threatAssessment.isThreatDetected,
-            threatLevel: threatAssessment.overallThreatLevel,
-            toolName: toolRequest.toolName,
             payloadSummary: JSON.stringify(toolRequest.parameters).slice(0, 150),
           });
 
+          // Terminate the compromised loop and alert the user
           responseStatus = "BLOCKED";
           finalContent = `[SECURITY BLOCKED] The requested action "${toolRequest.toolName}" was denied by security policy. Reason: ${decision.reason}`;
           return {
             id: responseId,
             requestId: request.id,
             sessionId: request.sessionId,
+            correlationId,
             status: responseStatus,
             content: finalContent,
             steps,
@@ -183,6 +285,7 @@ export class AgentOrchestrator {
         if (decision.decision === "REQUIRE_CONFIRMATION") {
           const awaitingResult: ToolResult = {
             toolRequestId: toolRequest.id,
+            correlationId,
             toolName: toolRequest.toolName,
             status: "AWAITING_APPROVAL",
             error: `Human confirmation required: ${decision.reason}`,
@@ -194,6 +297,7 @@ export class AgentOrchestrator {
           toolExecutions.push(awaitingResult);
           steps.push({
             stepIndex: currentTurn,
+            correlationId,
             reasoning: llmResponse.content,
             toolRequest,
             policyDecision: decision,
@@ -202,13 +306,20 @@ export class AgentOrchestrator {
           });
 
           this.auditLogger.logEvent({
-            source: toolRequest.trustContext.source,
+            correlationId,
             eventType: "CONFIRMATION_REQUIRED",
+            source: toolRequest.trustContext.source,
+            sourceType: toolRequest.trustContext.source,
+            requestedTool: toolRequest.toolName,
+            toolArgumentsMetadata: toolRequest.parameters,
+            policyRuleTriggered: decision.matchedRules[0]?.ruleId,
+            policyDecision: "REQUIRE_CONFIRMATION",
             decision: "REQUIRE_CONFIRMATION",
+            confirmationRequirement: true,
+            toolExecutionAttempted: true,
+            toolExecutionResult: "AWAITING_APPROVAL",
+            finalOutcome: "CONFIRMATION_REQUIRED",
             reason: decision.reason,
-            threatDetected: threatAssessment.isThreatDetected,
-            threatLevel: threatAssessment.overallThreatLevel,
-            toolName: toolRequest.toolName,
             payloadSummary: JSON.stringify(toolRequest.parameters).slice(0, 150),
           });
 
@@ -218,6 +329,7 @@ export class AgentOrchestrator {
             id: responseId,
             requestId: request.id,
             sessionId: request.sessionId,
+            correlationId,
             status: responseStatus,
             content: finalContent,
             steps,
@@ -234,21 +346,29 @@ export class AgentOrchestrator {
 
         // Case C: Policy Decision is APPROVE -> Forward to Tool Gateway for authorized execution
         const toolResult = await this.toolGateway.executeTool(toolRequest, decision);
+        toolResult.correlationId = correlationId;
         toolExecutions.push(toolResult);
 
         this.auditLogger.logEvent({
+          correlationId,
+          eventType: "TOOL_EXECUTED",
           source: toolRequest.trustContext.source,
-          eventType: "POLICY_DECISION",
+          sourceType: toolRequest.trustContext.source,
+          requestedTool: toolRequest.toolName,
+          toolArgumentsMetadata: toolRequest.parameters,
+          policyRuleTriggered: decision.matchedRules[0]?.ruleId,
+          policyDecision: "APPROVE",
           decision: "APPROVE",
-          reason: decision.reason,
-          threatDetected: threatAssessment.isThreatDetected,
-          threatLevel: threatAssessment.overallThreatLevel,
-          toolName: toolRequest.toolName,
+          toolExecutionAttempted: true,
+          toolExecutionResult: toolResult.status,
+          finalOutcome: "TOOL_EXECUTED",
+          reason: "Tool executed successfully within isolated sandbox boundary.",
           payloadSummary: JSON.stringify(toolRequest.parameters).slice(0, 150),
         });
 
         steps.push({
           stepIndex: currentTurn,
+          correlationId,
           reasoning: llmResponse.content,
           toolRequest,
           policyDecision: decision,
@@ -266,6 +386,7 @@ export class AgentOrchestrator {
       id: responseId,
       requestId: request.id,
       sessionId: request.sessionId,
+      correlationId,
       status: responseStatus,
       content: finalContent,
       steps,

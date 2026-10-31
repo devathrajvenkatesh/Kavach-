@@ -24,6 +24,7 @@ export interface ToolMetadata {
 export interface ToolRequest {
   id: string;
   sessionId: string;
+  correlationId?: string;
   toolName: string;
   parameters: Record<string, unknown>;
   trustContext: TrustContext;
@@ -38,6 +39,7 @@ export type ToolExecutionStatus =
 
 export interface ToolResult {
   toolRequestId: string;
+  correlationId?: string;
   toolName: string;
   status: ToolExecutionStatus;
   data?: unknown;

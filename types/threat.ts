@@ -29,6 +29,7 @@ export interface DetectedThreatSignal {
 
 export interface ThreatAssessment {
   id: string;
+  correlationId?: string;
   targetContentId: string;
   overallThreatLevel: ThreatSeverity;
   riskScore: number; // 0.0 - 1.0

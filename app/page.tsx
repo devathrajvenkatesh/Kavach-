@@ -6,6 +6,7 @@ import { CommandCenter } from "@/components/dashboard/CommandCenter";
 import { AttackLab } from "@/components/attack-lab/AttackLab";
 import { LiveAttackDemo } from "@/components/demo/LiveAttackDemo";
 import { AuditTrail } from "@/components/audit/AuditTrail";
+import { SecurityTraceView } from "@/components/audit/SecurityTraceView";
 import {
   FOUNDATIONAL_SECURITY_INVARIANT,
   TRUST_HIERARCHY_ORDER,
@@ -24,6 +25,7 @@ export default function HomePage() {
   const [activeSection, setActiveSection] = useState<NavSection>("command-center");
   const [selectedLabCategory, setSelectedLabCategory] = useState<string>("ALL");
   const [selectedDemoCase, setSelectedDemoCase] = useState<UnifiedTestCase | undefined>(undefined);
+  const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>(undefined);
 
   const handleNavigateToAttackLab = (category?: string) => {
     if (category) setSelectedLabCategory(category);
@@ -33,6 +35,11 @@ export default function HomePage() {
   const handleNavigateToLiveDemo = (testCase?: UnifiedTestCase) => {
     if (testCase) setSelectedDemoCase(testCase);
     setActiveSection("live-demo");
+  };
+
+  const handleNavigateToTrace = (correlationId?: string) => {
+    if (correlationId) setSelectedTraceId(correlationId);
+    setActiveSection("trace");
   };
 
   return (
@@ -46,6 +53,7 @@ export default function HomePage() {
           <CommandCenter
             onNavigateToAttackLab={handleNavigateToAttackLab}
             onNavigateToLiveDemo={() => setActiveSection("live-demo")}
+            onNavigateToTrace={handleNavigateToTrace}
           />
         )}
 
@@ -60,7 +68,13 @@ export default function HomePage() {
           <LiveAttackDemo initialCase={selectedDemoCase} />
         )}
 
-        {activeSection === "audit" && <AuditTrail />}
+        {activeSection === "audit" && (
+          <AuditTrail onNavigateToTrace={handleNavigateToTrace} />
+        )}
+
+        {activeSection === "trace" && (
+          <SecurityTraceView initialCorrelationId={selectedTraceId} />
+        )}
 
         {activeSection === "butler" && (
           <div className="space-y-8 animate-in fade-in duration-300">

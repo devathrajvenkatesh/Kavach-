@@ -23,6 +23,8 @@ export type TrustLevelName = keyof typeof TrustLevel;
 export interface TrustContext {
   /** Unique context identifier */
   contextId: string;
+  /** Request correlation ID tracking execution across layers */
+  correlationId?: string;
   /** Explicit source label (e.g. 'user_terminal', 'email_attachment', 'web_fetch') */
   source: string;
   /** Trust hierarchy classification for this context */
