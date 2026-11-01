@@ -26,15 +26,20 @@ import {
   RefreshCw,
   Bot,
   ArrowRight,
+  Clock,
 } from "lucide-react";
 import { WorkspaceFile, FileSecurityStatus, WorkspaceFolder } from "@/types/file-workspace";
 import { DEMO_PRESET_FILES } from "@/lib/files/demo-presets";
+import { formatReadingTime } from "@/lib/intelligence/triage";
+import {
+  getStoredWorkspaceFiles,
+  saveStoredWorkspaceFiles,
+  subscribeToWorkspaceFiles,
+} from "@/lib/files/workspace-store";
 
 interface SecureFileWorkspaceProps {
   onSendToAgent?: (file: WorkspaceFile) => void;
 }
-
-const STORAGE_KEY = "kavach_secure_workspace_files_v1";
 
 export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps) {
   // State
@@ -59,30 +64,19 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load from localStorage or initialize with empty workspace
+  // Load from authoritative store and subscribe to real-time cross-component updates
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setFiles(parsed);
-          return;
-        }
-      }
-    } catch {
-      // fallback to empty state
-    }
+    setFiles(getStoredWorkspaceFiles());
+    const unsubscribe = subscribeToWorkspaceFiles((updated) => {
+      setFiles(updated);
+    });
+    return () => unsubscribe();
   }, []);
 
-  // Sync to localStorage
+  // Sync to authoritative store
   const saveFiles = (updatedFiles: WorkspaceFile[]) => {
     setFiles(updatedFiles);
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedFiles));
-    } catch (e) {
-      console.warn("Failed to persist files to localStorage", e);
-    }
+    saveStoredWorkspaceFiles(updatedFiles);
   };
 
   // Inspect a file via /api/files/inspect
@@ -275,7 +269,15 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
   };
 
   // Helper for Status Badge
-  const getStatusBadge = (status: FileSecurityStatus) => {
+  const getStatusBadge = (status: FileSecurityStatus, isQuarantined?: boolean) => {
+    if (isQuarantined) {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FEF2F2] text-[#991B1B] border border-[#FCA5A5]">
+          <Lock className="w-3.5 h-3.5 text-[#DC2626]" />
+          QUARANTINED
+        </span>
+      );
+    }
     switch (status) {
       case "SAFE":
         return (
@@ -515,6 +517,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
                 <tr>
                   <th className="py-3 px-4">Name</th>
                   <th className="py-3 px-4">Type</th>
+                  <th className="py-3 px-4">Triage Priority</th>
                   <th className="py-3 px-4">Folder</th>
                   <th className="py-3 px-4">Size</th>
                   <th className="py-3 px-4">Security Status</th>
@@ -550,6 +553,28 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
                       <td className="py-3.5 px-4 text-xs font-mono text-[#678882]">
                         {file.type}
                       </td>
+                      <td className="py-3.5 px-4 text-xs">
+                        {file.urgency ? (
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                                file.urgency.level === "CRITICAL"
+                                  ? "bg-[#FDF0ED] text-[#C2410C]"
+                                  : file.urgency.level === "INFORMATIONAL"
+                                  ? "bg-[#F3F4F6] text-[#4B5563]"
+                                  : "bg-[#FEF9EE] text-[#B45309]"
+                              }`}
+                            >
+                              {file.urgency.level === "CRITICAL" ? "🔥 CRITICAL" : file.urgency.level === "INFORMATIONAL" ? "💤 INFO" : "⚡ NORMAL"}
+                            </span>
+                            <span className="text-[10px] text-[#678882] font-mono">
+                              {formatReadingTime(file.urgency.estimatedReadingTimeSeconds)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[#678882] text-xs">—</span>
+                        )}
+                      </td>
                       <td className="py-3.5 px-4 text-xs text-[#678882]">
                         <span className="inline-flex items-center gap-1">
                           <Folder className="w-3.5 h-3.5 text-[#678882]/70" />
@@ -560,7 +585,7 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
                         {file.formattedSize}
                       </td>
                       <td className="py-3.5 px-4">
-                        {getStatusBadge(file.securityStatus)}
+                        {getStatusBadge(file.securityStatus, file.isQuarantined)}
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
@@ -703,6 +728,17 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
             </div>
           </div>
 
+          {/* Quarantine Alert Banner */}
+          {selectedFile.isQuarantined && (
+            <div className="mx-4 mt-3 p-3.5 rounded-xl bg-[#FEF2F2] border border-[#FCA5A5] flex items-start gap-2.5 text-xs text-[#991B1B]">
+              <Lock className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">Quarantine Enforced:</span>{" "}
+                {selectedFile.quarantineReason || "Hostile directives quarantined. Downstream tool execution is strictly halted."}
+              </div>
+            </div>
+          )}
+
           {/* Drawer Tabs */}
           <div className="flex border-b border-[#E4DEC8] px-4 bg-[#FAF7EE] text-xs font-medium">
             <button
@@ -784,6 +820,72 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
 
               return (
                 <div className="space-y-4">
+                  {/* Executive Radar & Content Triage */}
+                  {selectedFile.urgency && (
+                    <div className="bg-[#FAF7EE] p-4 rounded-xl border border-[#E4DEC8] space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-[#E4DEC8]">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-[#FCFAF5] rounded-lg border border-[#E4DEC8] text-[#052326]">
+                            <Clock className="w-4 h-4 text-[#C9A86A]" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-xs text-[#052326]">
+                              Executive Radar — Content Triage
+                            </h4>
+                            <span className="text-[10px] text-[#678882]">
+                              Operational urgency & reading time assessment
+                            </span>
+                          </div>
+                        </div>
+                        <span
+                          className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                            selectedFile.urgency.level === "CRITICAL"
+                              ? "bg-[#FDF0ED] text-[#C2410C]"
+                              : selectedFile.urgency.level === "INFORMATIONAL"
+                              ? "bg-[#F3F4F6] text-[#4B5563]"
+                              : "bg-[#FEF9EE] text-[#B45309]"
+                          }`}
+                        >
+                          {selectedFile.urgency.level === "CRITICAL"
+                            ? "🔥 CRITICAL"
+                            : selectedFile.urgency.level === "INFORMATIONAL"
+                            ? "💤 INFORMATIONAL"
+                            : "⚡ NORMAL"}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="p-2.5 bg-[#FCFAF5] rounded-lg border border-[#E4DEC8]/60">
+                          <span className="text-[10px] text-[#678882] block font-semibold">
+                            Est. Reading Time
+                          </span>
+                          <span className="font-semibold text-[#052326] text-[11px] block mt-0.5">
+                            {formatReadingTime(selectedFile.urgency.estimatedReadingTimeSeconds)}
+                          </span>
+                        </div>
+                        <div className="p-2.5 bg-[#FCFAF5] rounded-lg border border-[#E4DEC8]/60">
+                          <span className="text-[10px] text-[#678882] block font-semibold">
+                            Requires Reply
+                          </span>
+                          <span className="font-semibold text-[#052326] text-[11px] block mt-0.5">
+                            {selectedFile.urgency.requiresReply ? "Yes — Action Required" : "No — Informational"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {selectedFile.urgency.reason && (
+                        <div className="text-[11px] text-[#678882] space-y-1">
+                          <span className="font-semibold text-[10px] uppercase tracking-wider block">
+                            Triage Rationale
+                          </span>
+                          <p className="text-xs text-[#052326] bg-[#FCFAF5] p-2.5 rounded-lg border border-[#E4DEC8]/60">
+                            {selectedFile.urgency.reason}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {/* Panel A: Document Intelligence */}
                   <div className="bg-[#FAF7EE] p-4 rounded-xl border border-[#E4DEC8] space-y-3">
                     <div className="flex items-center justify-between pb-2 border-b border-[#E4DEC8]">
@@ -1001,6 +1103,60 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
                       </span>
                     </div>
                   </div>
+
+                  {/* Panel D: Auto-Drafted Reply */}
+                  {selectedFile.replyDraft && (
+                    <div className="bg-[#FAF7EE] p-4 rounded-xl border border-[#E4DEC8] space-y-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-[#E4DEC8]">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-[#FCFAF5] rounded-lg border border-[#E4DEC8] text-[#052326]">
+                            <Mail className="w-4 h-4 text-[#C9A86A]" />
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-xs text-[#052326]">
+                              D. Auto-Drafted Reply
+                            </h4>
+                            <span className="text-[10px] text-[#678882]">
+                              Non-authoritative proposed response draft
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-mono bg-[#EBF1ED] text-[#2E595A] px-2 py-0.5 rounded font-bold">
+                          PROPOSED DRAFT
+                        </span>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center py-1 border-b border-[#E4DEC8]/50 text-xs">
+                          <span className="text-[#678882] font-medium text-[11px]">Recipient:</span>
+                          <span className="font-mono text-[#052326] text-[11px] truncate max-w-[200px]">
+                            {selectedFile.replyDraft.recipient}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center py-1 border-b border-[#E4DEC8]/50 text-xs">
+                          <span className="text-[#678882] font-medium text-[11px]">Subject:</span>
+                          <span className="font-medium text-[#052326] text-[11px] truncate max-w-[200px]">
+                            {selectedFile.replyDraft.subject}
+                          </span>
+                        </div>
+                        <div className="p-2.5 bg-[#FCFAF5] rounded-lg border border-[#E4DEC8]/60">
+                          <span className="text-[10px] text-[#678882] font-semibold uppercase tracking-wider block mb-1">
+                            Draft Body Preview
+                          </span>
+                          <p className="text-xs text-[#052326] whitespace-pre-wrap leading-relaxed font-sans">
+                            {selectedFile.replyDraft.body}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="p-2.5 bg-[#EBF1ED] rounded-lg border border-[#C5DDD2] text-[#2E595A] text-[10px] flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4 text-[#1E5E4E] shrink-0" />
+                        <span>
+                          <strong>Zero-Authority Guarantee:</strong> Drafts are never sent automatically. User must explicitly approve transmission in the Agent chat.
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* AI Agent Action Button */}
                   {onSendToAgent && (

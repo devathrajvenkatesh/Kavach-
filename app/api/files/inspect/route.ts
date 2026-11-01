@@ -10,6 +10,7 @@ import {
   SecurityIntelligence,
   ActionControl,
 } from "@/types/file-workspace";
+import { evaluateUrgency, generateAutoDraftReply } from "@/lib/intelligence/triage";
 
 export const runtime = "nodejs";
 
@@ -150,6 +151,19 @@ export async function POST(req: NextRequest) {
       parsed.extractedText
     );
 
+    const urgency = evaluateUrgency(
+      parsed.extractedText,
+      threatAssessment.isThreatDetected,
+      threatAssessment.overallThreatLevel
+    );
+
+    const replyDraft = generateAutoDraftReply({
+      fileName: parsed.fileName,
+      fileType: parsed.fileType,
+      extractedText: parsed.extractedText,
+      isThreat: threatAssessment.isThreatDetected,
+    });
+
     // 7. Return secure WorkspaceFile object
     const workspaceFile: WorkspaceFile = {
       id: fileId,
@@ -176,7 +190,14 @@ export async function POST(req: NextRequest) {
       documentIntelligence,
       securityIntelligence,
       actionControl,
+      urgency,
+      replyDraft,
+      isQuarantined: threatAssessment.isThreatDetected,
+      quarantineReason: threatAssessment.isThreatDetected
+        ? "Hostile instruction detected and quarantined. Execution boundaries active."
+        : undefined,
     };
+
 
     return NextResponse.json({
       success: true,

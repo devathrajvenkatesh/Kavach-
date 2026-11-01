@@ -15,10 +15,18 @@ import {
   AlertCircle,
   RefreshCw,
   Lock,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Paperclip,
+  X,
 } from "lucide-react";
 import { UnifiedTestCase, AttackExecutionResult } from "@/lib/attack-lab/types";
 import { ALL_TEST_CASES } from "@/lib/attack-lab/dataset-loader";
 import { defaultPipelineRunner } from "@/lib/attack-lab/pipeline-runner";
+import { UrgencyTriage, ProposedAction, ReplyDraft } from "@/types/agent";
+import { formatReadingTime } from "@/lib/intelligence/triage";
+import { WorkspaceFile, FileSecurityStatus } from "@/types/file-workspace";
 
 export type DemoStage =
   | "IDLE"
@@ -75,6 +83,11 @@ interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
+  attachedFile?: {
+    name: string;
+    sizeFormatted: string;
+    type?: string;
+  };
   status?: "COMPLETED" | "BLOCKED" | "REQUIRES_CONFIRMATION" | "ERROR";
   security?: {
     attackDetected: boolean;
@@ -86,6 +99,11 @@ interface ChatMessage {
     providerName: string;
     modelIdentifier: string;
   };
+  urgency?: UrgencyTriage;
+  proposedAction?: ProposedAction;
+  replyDraft?: ReplyDraft;
+  isQuarantined?: boolean;
+  quarantineReason?: string;
   timestamp: string;
 }
 
@@ -109,9 +127,15 @@ const QUICK_TEST_PROMPTS = [
 
 interface LiveAttackDemoProps {
   initialCase?: UnifiedTestCase;
+  initialWorkspaceFile?: WorkspaceFile | null;
+  onClearWorkspaceFile?: () => void;
 }
 
-export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
+export function LiveAttackDemo({
+  initialCase,
+  initialWorkspaceFile,
+  onClearWorkspaceFile,
+}: LiveAttackDemoProps) {
   // Tab Mode
   const [activeTab, setActiveTab] = useState<"live-chat" | "attack-stepper">("live-chat");
 
@@ -135,11 +159,76 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
     },
   ]);
   const [inputMessage, setInputMessage] = useState("");
+  const [attachedFile, setAttachedFile] = useState<{
+    file?: File;
+    name: string;
+    sizeFormatted: string;
+    sizeBytes?: number;
+    content: string;
+    mimeType: string;
+    securityStatus?: FileSecurityStatus | string;
+    riskLevel?: string;
+    isQuarantined?: boolean;
+    quarantineReason?: string;
+    threatCategory?: string;
+    fromWorkspace?: boolean;
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [expandedSecurityIds, setExpandedSecurityIds] = useState<Record<string, boolean>>({});
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes <= 0) return "0 B";
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setErrorBanner("File exceeds 10MB limit. Please attach a smaller file.");
+      return;
+    }
+
+    const reader = new FileReader();
+    const isPdf = file.name.toLowerCase().endsWith(".pdf") || file.type.includes("pdf");
+
+    if (isPdf) {
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        const base64Content = result.includes(",") ? result.split(",")[1] : result;
+        setAttachedFile({
+          file,
+          name: file.name,
+          sizeFormatted: formatFileSize(file.size),
+          content: base64Content,
+          mimeType: file.type || "application/pdf",
+        });
+      };
+    } else {
+      reader.readAsText(file);
+      reader.onload = () => {
+        setAttachedFile({
+          file,
+          name: file.name,
+          sizeFormatted: formatFileSize(file.size),
+          content: reader.result as string,
+          mimeType: file.type || "text/plain",
+        });
+      };
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const toggleSecurityDetails = (id: string) => {
     setExpandedSecurityIds((prev) => ({
@@ -177,6 +266,29 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
       setCurrentStage("IDLE");
     }
   }, [initialCase]);
+
+  // Handle direct file transfer from Secure File Workspace
+  useEffect(() => {
+    if (initialWorkspaceFile) {
+      setActiveTab("live-chat");
+      setAttachedFile({
+        name: initialWorkspaceFile.name,
+        sizeFormatted: initialWorkspaceFile.formattedSize,
+        sizeBytes: initialWorkspaceFile.sizeBytes,
+        content: initialWorkspaceFile.extractedPreview,
+        mimeType: initialWorkspaceFile.mimeType,
+        securityStatus: initialWorkspaceFile.securityStatus,
+        riskLevel: initialWorkspaceFile.riskLevel,
+        isQuarantined: initialWorkspaceFile.isQuarantined,
+        quarantineReason: initialWorkspaceFile.quarantineReason,
+        threatCategory: initialWorkspaceFile.threatCategory,
+        fromWorkspace: true,
+      });
+      setInputMessage(
+        `Please analyze attached document "${initialWorkspaceFile.name}" and provide key findings.`
+      );
+    }
+  }, [initialWorkspaceFile]);
 
   // Scroll chat messages to bottom on new message
   useEffect(() => {
@@ -247,18 +359,30 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
 
   // Secure Frontend -> POST /api/agent -> Server-side Agent Orchestrator
   const handleSendMessage = async (customPrompt?: string) => {
-    const promptToSend = (customPrompt || inputMessage).trim();
+    const currentAttachment = attachedFile;
+    const promptToSend =
+      (customPrompt || inputMessage).trim() ||
+      (currentAttachment ? `Please analyze attached file "${currentAttachment.name}" and provide key findings.` : "");
     if (!promptToSend || isLoading) return;
 
     const userMessage: ChatMessage = {
       id: `msg_user_${Date.now()}`,
       role: "user",
       content: promptToSend,
+      attachedFile: currentAttachment
+        ? {
+            name: currentAttachment.name,
+            sizeFormatted: currentAttachment.sizeFormatted,
+            type: currentAttachment.mimeType,
+          }
+        : undefined,
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
     setChatMessages((prev) => [...prev, userMessage]);
     if (!customPrompt) setInputMessage("");
+    setAttachedFile(null);
+    onClearWorkspaceFile?.();
     setIsLoading(true);
     setErrorBanner(null);
 
@@ -269,6 +393,16 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
         body: JSON.stringify({
           message: promptToSend,
           conversationId: "live_web_session",
+          attachment: currentAttachment
+            ? {
+                fileName: currentAttachment.name,
+                mimeType: currentAttachment.mimeType,
+                content: currentAttachment.content,
+                sizeBytes: currentAttachment.file
+                  ? currentAttachment.file.size
+                  : currentAttachment.sizeBytes || currentAttachment.content.length,
+              }
+            : undefined,
         }),
       });
 
@@ -298,6 +432,11 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
         status: data.status,
         security: data.security,
         provider: data.provider,
+        urgency: data.urgency,
+        proposedAction: data.proposedAction,
+        replyDraft: data.replyDraft,
+        isQuarantined: data.isQuarantined,
+        quarantineReason: data.quarantineReason,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       };
 
@@ -319,6 +458,66 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleActionApproval = async (
+    messageId: string,
+    proposedAction: ProposedAction,
+    approved: boolean,
+    correlationId?: string
+  ) => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId: "live_web_session",
+          actionApproval: {
+            approved,
+            toolName: proposedAction.actionType,
+            parameters: proposedAction.parameters,
+            correlationId,
+          },
+        }),
+      });
+
+      await res.json();
+
+      setChatMessages((prev) =>
+        prev.map((msg) => {
+          if (msg.id === messageId) {
+            return {
+              ...msg,
+              proposedAction: {
+                ...msg.proposedAction!,
+                status: approved ? "APPROVED" : "REJECTED",
+              },
+              status: approved ? "COMPLETED" : "BLOCKED",
+            };
+          }
+          return msg;
+        })
+      );
+
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: `msg_decision_${Date.now()}`,
+          role: "assistant",
+          content: approved
+            ? `✓ Action "${proposedAction.actionType}" was approved and executed successfully by human operator.`
+            : `✗ Action "${proposedAction.actionType}" was rejected by user. Operation cancelled with zero side-effects.`,
+          status: approved ? "COMPLETED" : "BLOCKED",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+    } catch (err: unknown) {
+      console.error("Action approval error:", err);
+      setErrorBanner("Failed to submit action approval decision.");
     } finally {
       setIsLoading(false);
     }
@@ -476,7 +675,176 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                         : "bg-[#FAF7EE] border border-[#E4DEC8] text-[#052326] rounded-tl-xs shadow-xs"
                     }`}
                   >
+                    {/* Attached file pill in user message */}
+                    {msg.attachedFile && (
+                      <div className="mb-2 p-2 rounded-xl bg-white/10 border border-white/20 flex items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <Paperclip className="w-3.5 h-3.5 text-[#C9A86A] shrink-0" />
+                          <span className="font-semibold text-white truncate max-w-[200px]">
+                            {msg.attachedFile.name}
+                          </span>
+                          <span className="text-[10px] text-white/70 font-mono">
+                            ({msg.attachedFile.sizeFormatted})
+                          </span>
+                        </div>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/20 font-mono text-[#F7F4EA] shrink-0">
+                          Untrusted Data
+                        </span>
+                      </div>
+                    )}
+
                     <div className="whitespace-pre-wrap">{msg.content}</div>
+
+                    {/* Threat Quarantine Alert */}
+                    {msg.isQuarantined && (
+                      <div className="mt-2.5 p-3 rounded-xl bg-[#FEF2F2] border border-[#FCA5A5] text-xs text-[#991B1B] flex items-start gap-2.5">
+                        <Lock className="w-4 h-4 text-[#DC2626] shrink-0 mt-0.5" />
+                        <div>
+                          <span className="font-bold">Threat Quarantined:</span>{" "}
+                          {msg.quarantineReason || "Hostile instructions detected and quarantined. Tool execution halted."}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Urgency & Reading Time Badge */}
+                    {msg.urgency && (
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <span
+                          className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md ${
+                            msg.urgency.level === "CRITICAL"
+                              ? "bg-[#FDF0ED] text-[#C2410C]"
+                              : msg.urgency.level === "INFORMATIONAL"
+                              ? "bg-[#F3F4F6] text-[#4B5563]"
+                              : "bg-[#FEF9EE] text-[#B45309]"
+                          }`}
+                        >
+                          {msg.urgency.level === "CRITICAL" ? "🔥 CRITICAL" : msg.urgency.level === "INFORMATIONAL" ? "💤 INFORMATIONAL" : "⚡ NORMAL"}
+                        </span>
+                        <span className="text-[10px] font-mono text-[#678882] flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatReadingTime(msg.urgency.estimatedReadingTimeSeconds)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Auto-Drafted Reply Card */}
+                    {msg.replyDraft && msg.status !== "BLOCKED" && (
+                      <div className="mt-2.5 p-3.5 rounded-xl bg-[#FCFAF5] border border-[#E4DEC8] space-y-2 text-xs">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-[#E4DEC8]">
+                          <div className="flex items-center gap-1.5 font-bold text-[#052326]">
+                            <Sparkles className="w-3.5 h-3.5 text-[#C9A86A]" />
+                            <span>Auto-Drafted Reply (Requires Review)</span>
+                          </div>
+                          <span className="text-[9px] font-mono bg-[#EBF1ED] text-[#1E5E4E] px-1.5 py-0.5 rounded font-bold">
+                            DRAFT
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-[#678882] space-y-1">
+                          <div><span className="font-semibold text-[#052326]">To:</span> {msg.replyDraft.recipient}</div>
+                          <div><span className="font-semibold text-[#052326]">Subject:</span> {msg.replyDraft.subject}</div>
+                        </div>
+                        <div className="p-2.5 rounded-lg bg-white border border-[#E4DEC8] text-xs text-[#052326] whitespace-pre-wrap">
+                          {msg.replyDraft.body}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setInputMessage(msg.replyDraft!.body)}
+                          className="text-[11px] font-semibold text-[#2E595A] hover:text-[#052326] flex items-center gap-1 transition-colors"
+                        >
+                          <span>Copy draft into chat input</span>
+                          <ChevronRight className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Human Action Approval Card */}
+                    {msg.proposedAction && (
+                      <div className="mt-3 p-4 rounded-xl bg-[#FFFBF5] border border-[#F2DEB8] space-y-3 text-xs">
+                        <div className="flex items-center justify-between pb-2 border-b border-[#F2DEB8]">
+                          <div className="flex items-center gap-2">
+                            <div className="p-1 rounded bg-[#052326] text-[#C9A86A]">
+                              <Lock className="w-3.5 h-3.5" />
+                            </div>
+                            <div>
+                              <h5 className="font-bold text-xs text-[#052326]">
+                                Human Authorization Required
+                              </h5>
+                              <span className="text-[10px] text-[#678882]">
+                                Proposed action requires explicit human confirmation.
+                              </span>
+                            </div>
+                          </div>
+                          <span
+                            className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded uppercase ${
+                              msg.proposedAction.status === "APPROVED"
+                                ? "bg-[#EBF1ED] text-[#1E5E4E]"
+                                : msg.proposedAction.status === "REJECTED"
+                                ? "bg-[#FEF2F2] text-[#991B1B]"
+                                : "bg-[#FAF5EB] text-[#C9A86A] border border-[#C9A86A]/40"
+                            }`}
+                          >
+                            {msg.proposedAction.status || "REQUIRE_CONFIRMATION"}
+                          </span>
+                        </div>
+
+                        <div className="bg-white p-3 rounded-lg border border-[#E4DEC8] space-y-1.5 text-[11px]">
+                          <div className="flex justify-between">
+                            <span className="text-[#678882]">Action Type:</span>
+                            <span className="font-mono font-bold text-[#052326]">{msg.proposedAction.actionType}</span>
+                          </div>
+                          {msg.proposedAction.target && (
+                            <div className="flex justify-between">
+                              <span className="text-[#678882]">Target Destination:</span>
+                              <span className="font-mono text-[#052326] truncate max-w-[200px]">{msg.proposedAction.target}</span>
+                            </div>
+                          )}
+                          {msg.proposedAction.subject && (
+                            <div className="flex justify-between">
+                              <span className="text-[#678882]">Subject:</span>
+                              <span className="text-[#052326] truncate max-w-[200px]">{msg.proposedAction.subject}</span>
+                            </div>
+                          )}
+                          <div className="pt-1 text-[#678882] text-[10px] border-t border-[#E4DEC8]/50">
+                            {msg.proposedAction.summary}
+                          </div>
+                        </div>
+
+                        {(!msg.proposedAction.status || msg.proposedAction.status === "PROPOSED" || msg.proposedAction.status === "REQUIRE_CONFIRMATION") && (
+                          <div className="flex items-center gap-2 pt-1">
+                            <button
+                              type="button"
+                              onClick={() => handleActionApproval(msg.id, msg.proposedAction!, true, msg.security?.correlationId)}
+                              className="flex-1 py-2 px-3 rounded-xl bg-[#052326] hover:bg-[#0A2E33] text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5 text-[#C9A86A]" />
+                              <span>Approve &amp; Send</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleActionApproval(msg.id, msg.proposedAction!, false, msg.security?.correlationId)}
+                              className="py-2 px-3 rounded-xl bg-white hover:bg-[#FDF0ED] border border-[#E4DEC8] hover:border-[#C2410C] text-[#C2410C] font-semibold text-xs transition-colors flex items-center justify-center gap-1.5"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                              <span>Reject</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {msg.proposedAction.status === "APPROVED" && (
+                          <div className="text-[11px] font-semibold text-[#1E5E4E] flex items-center gap-1.5 bg-[#EBF1ED] p-2 rounded-lg">
+                            <CheckCircle2 className="w-4 h-4 text-[#1E5E4E]" />
+                            <span>Authorized by user. Tool executed successfully.</span>
+                          </div>
+                        )}
+
+                        {msg.proposedAction.status === "REJECTED" && (
+                          <div className="text-[11px] font-semibold text-[#991B1B] flex items-center gap-1.5 bg-[#FEF2F2] p-2 rounded-lg">
+                            <XCircle className="w-4 h-4 text-[#991B1B]" />
+                            <span>Rejected by user. Tool execution halted with zero side-effects.</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
 
                     {/* Layer 1: Compact User-Facing Status & Collapsible Details Trigger */}
                     {msg.role === "assistant" && msg.security && (
@@ -622,24 +990,92 @@ export function LiveAttackDemo({ initialCase }: LiveAttackDemoProps) {
                 e.preventDefault();
                 handleSendMessage();
               }}
-              className="mt-4 pt-3 border-t border-[#E4DEC8] flex items-center space-x-2"
+              className="mt-4 pt-3 border-t border-[#E4DEC8]"
             >
-              <input
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Ask Kavach anything or test an adversarial prompt..."
-                disabled={isLoading}
-                className="flex-1 rounded-xl bg-[#FFFFFF] border border-[#E4DEC8] px-4 py-2.5 text-xs text-[#052326] placeholder-[#678882] focus:outline-none focus:border-[#C9A86A] transition-colors font-mono disabled:opacity-50"
-              />
-              <button
-                type="submit"
-                disabled={isLoading || !inputMessage.trim()}
-                className="px-4 py-2.5 rounded-xl bg-[#052326] hover:bg-[#2E595A] disabled:opacity-40 text-white text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-sm active:scale-95 flex-shrink-0"
-              >
-                <span>Send</span>
-                <Send className="w-3.5 h-3.5 text-[#C9A86A]" />
-              </button>
+              {/* Attached file chip preview */}
+              {attachedFile && (
+                <div className="mb-2.5 flex items-center justify-between p-2.5 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] text-xs">
+                  <div className="flex items-center space-x-2 min-w-0">
+                    <div className="p-1 rounded-lg bg-[#FCFAF5] border border-[#E4DEC8] text-[#052326]">
+                      <Paperclip className="w-3.5 h-3.5 text-[#C9A86A]" />
+                    </div>
+                    <div className="flex items-baseline space-x-1.5 truncate">
+                      <span className="font-semibold text-[#052326] truncate">{attachedFile.name}</span>
+                      <span className="text-[10px] text-[#678882] font-mono">({attachedFile.sizeFormatted})</span>
+                    </div>
+                    {attachedFile.isQuarantined ||
+                    attachedFile.securityStatus === "BLOCKED" ||
+                    attachedFile.securityStatus === "THREAT_DETECTED" ? (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#FEF2F2] text-[#DC2626] border border-[#FCA5A5] font-semibold shrink-0 flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" />
+                        Quarantined (Untrusted Evidence)
+                      </span>
+                    ) : attachedFile.fromWorkspace ? (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#EBF1ED] text-[#2E595A] font-semibold shrink-0">
+                        Inspected Safe (Trust Level 1)
+                      </span>
+                    ) : (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#EBF1ED] text-[#2E595A] font-semibold shrink-0">
+                        Untrusted Data (Trust Level 1)
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAttachedFile(null);
+                      onClearWorkspaceFile?.();
+                    }}
+                    className="p-1 text-[#678882] hover:text-[#C2410C] rounded-lg transition-colors"
+                    title="Remove attachment"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
+
+              <div className="flex items-center space-x-2">
+                {/* Hidden File Input */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  accept=".eml,.pdf,.txt,.csv,.json,.md"
+                  className="hidden"
+                />
+
+                {/* Attach File Button */}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isLoading}
+                  className="p-2.5 rounded-xl border border-[#E4DEC8] bg-[#FAF7EE] hover:bg-[#EFEAD9] text-[#678882] hover:text-[#052326] transition-all flex items-center justify-center flex-shrink-0 disabled:opacity-50"
+                  title="Attach file (.eml, .pdf, .txt, .csv, .json)"
+                >
+                  <Paperclip className="w-4 h-4 text-[#C9A86A]" />
+                </button>
+
+                <input
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  placeholder={
+                    attachedFile
+                      ? `Ask Kavach about "${attachedFile.name}" or leave empty to analyze...`
+                      : "Ask Kavach anything or test an adversarial prompt..."
+                  }
+                  disabled={isLoading}
+                  className="flex-1 rounded-xl bg-[#FFFFFF] border border-[#E4DEC8] px-4 py-2.5 text-xs text-[#052326] placeholder-[#678882] focus:outline-none focus:border-[#C9A86A] transition-colors font-mono disabled:opacity-50"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || (!inputMessage.trim() && !attachedFile)}
+                  className="px-4 py-2.5 rounded-xl bg-[#052326] hover:bg-[#2E595A] disabled:opacity-40 text-white text-xs font-semibold flex items-center space-x-1.5 transition-all shadow-sm active:scale-95 flex-shrink-0"
+                >
+                  <span>Send</span>
+                  <Send className="w-3.5 h-3.5 text-[#C9A86A]" />
+                </button>
+              </div>
             </form>
           </div>
         </div>

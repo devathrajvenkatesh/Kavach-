@@ -60,6 +60,7 @@ export const DIRECT_INJECTION_PATTERNS: Array<{ regex: RegExp; indicator: string
   { regex: /\b(bot|assistant|ai|agent|character|persona)\s+with\s+no\s+(safety|security|canary)\s*(rules|restrictions)\b/i, indicator: "Invocation of an unrestricted persona." },
   { regex: /\b(character|persona|bot)\s+who\s+is\s+allowed\s+to\s+(reveal|share|leak|print|output|read)\b/i, indicator: "Fictional roleplay framing claiming secret disclosure permission." },
   { regex: /bypass\s+(security|guardrails|safety|filters|policy)/i, indicator: "Explicit directive to bypass security controls." },
+  { regex: /(disable|deactivate|turn\s+off)\s+(the\s+)?(security\s+(gateway|firewall|guardrails?|controls?|filters?|rules?|policy|protections?)|policy\s+engine)/i, indicator: "Explicit directive to disable security gateway or policy engine." },
   { regex: /\b(DAN|do\s+anything\s+now)\b/i, indicator: "Classic jailbreak personality framing (DAN)." },
   { regex: /you\s+are\s+now\s+in\s+(maintenance|debug|administrator)\s+mode/i, indicator: "Fake maintenance/admin mode escalation." },
   { regex: /hypothetical\s+scenario\s+where\s+(rules|laws|security)\s+do\s+not\s+apply/i, indicator: "Hypothetical sandbox escape framing." },
@@ -77,6 +78,8 @@ export const INDIRECT_INJECTION_PATTERNS: Array<{ regex: RegExp; indicator: stri
   { regex: /<\/untrusted_external_data>/i, indicator: "Delimiter breakout attempt targeting boundary tags." },
   { regex: /!\[[^\]]*\]\((https?:\/\/[^\s)]+(\?|&)[^)]+)\)/i, indicator: "Markdown image data exfiltration trigger." },
   { regex: /base64\s*:\s*[A-Za-z0-9+/=]{40,}/i, indicator: "Embedded base64 encoded instruction block." },
+  { regex: /\bdecode\s+(this\s+)?([a-z0-9_-]+\s+)?(payload|instruction|directive|command|code)\s+and\s+execute\b/i, indicator: "Directive instructing agent to decode and execute concealed instructions." },
+  { regex: /\b(rot-?13|caesar\s+cipher)\b.*?\b(decode|execute|instruction)\b/i, indicator: "ROT13/Caesar cipher obfuscated execution request." },
 ];
 
 export const GOAL_HIJACKING_PATTERNS: Array<{ regex: RegExp; indicator: string }> = [
@@ -87,6 +90,7 @@ export const GOAL_HIJACKING_PATTERNS: Array<{ regex: RegExp; indicator: string }
   { regex: /the\s+user\s+(made\s+a\s+mistake|actually\s+wants\s+you\s+to|changed\s+their\s+mind)/i, indicator: "Deceptive claim that user changed their request." },
   { regex: /cancel\s+(the\s+)?(prior|previous|original)\s+(request|instruction|task)\s+and/i, indicator: "Attempt to cancel original user task." },
   { regex: /\bnow\s+(you\s+must|you\s+will|listen\s+to\s+me|follow\s+my\s+instructions)\b/i, indicator: "Forced compliance directive attempting task substitution." },
+  { regex: /\btreat\s+(these|this|the\s+following)\s+(steps?|instructions?|workflow|directives?)\s+as\s+(mandatory|required|priority|urgent|override)\b/i, indicator: "Directive attempting to force mandatory execution of untrusted workflow." },
 ];
 
 export const SECRET_EXFILTRATION_PATTERNS: Array<{ regex: RegExp; indicator: string }> = [
@@ -95,13 +99,21 @@ export const SECRET_EXFILTRATION_PATTERNS: Array<{ regex: RegExp; indicator: str
   { regex: /\b(sk-[a-zA-Z0-9_-]{20,}|AKIA[0-9A-Z]{16}|ghp_[a-zA-Z0-9]{36}|xox[baprs]-[a-zA-Z0-9_-]+)\b/, indicator: "Known API key format token detected." },
   { regex: /-----BEGIN\s+(RSA|EC|OPENSSH|DSA|PGP|PRIVATE)\s+KEY-----/, indicator: "Cryptographic private key header detected." },
   { regex: /(canary[\s_-]*(token|secret|tripwire|key)|sk-canary)/i, indicator: "Tripwire canary token detected." },
-  { regex: /\b(master('s)?|owner('s)?|count\s+byteula('s)?)\s+(secret|canary|key|credential|token)\b/i, indicator: "Probe targeting owner/master confidential secrets." },
+  { regex: /\b(master('s)?|owner('s)?|count\s+byteula('s)?)\s+(secret|canary|key|credential|token|confidential\s+configuration|configuration|vault|passwords?)\b/i, indicator: "Probe targeting owner/master confidential secrets or configuration." },
   { regex: /\b(print|reveal|output|display|show|send|leak|give|share)\s+.*?\b(canary|secret|token|password|private\s+key|credential)\b/i, indicator: "Explicit directive to extract or print confidential secret/canary." },
   { regex: /(repeat|output|print|reveal|display|leak)\s+(the\s+)?(instructions|system\s+prompt|initial\s+directive)\s+(above|verbatim)/i, indicator: "System prompt extraction probe." },
   { regex: /(read|access|exfiltrate|send|dump)\s+(passwords?|secrets?|tokens?|private_keys?|api_keys?)/i, indicator: "Explicit secret harvesting directive." },
+  { regex: /\b(save|write|export|dump)\s+(the\s+)?(secret|confidential|credential|canary|vault|key)\s+(values?|data|contents?)?\s+into\b/i, indicator: "Directive to stage sensitive/secret values into local file." },
+  { regex: /\b(upload|send|post|transmit|exfiltrate)\s+(the\s+)?(file|data|secrets?|contents?)\s+to\s+(the\s+)?(external|collection|remote|attacker|shadow)/i, indicator: "Directive to exfiltrate data or files to external collection endpoint." },
 ];
 
 export const PRIVILEGE_ESCALATION_PATTERNS: Array<{ regex: RegExp; indicator: string }> = [
+  { regex: /\b(administrator|admin|master|system|security\s+team|root)\s+(authorization|approval|override|mandate|privilege|clearance)\s*:/i, indicator: "Fabricated administrative authorization banner." },
+  { regex: /\b(already\s+)?(been\s+)?(approved|authorized|sanctioned)\s+by\s+(the\s+)?(master|admin|administrator|owner|security\s+team|user)\b/i, indicator: "Falsely claiming action has already been approved by authority." },
+  { regex: /\b(request|action|task|instruction)\s+has\s+(already\s+)?been\s+approved\b/i, indicator: "Deceptive claim of prior approval." },
+  { regex: /\b(disable|turn\s+off|deactivate|bypass|override)\s+(the\s+)?(security\s+(gateway|firewall|guardrails?|controls?|filters?|rules?|protections?)|policy\s+engine|safety\s+checks?)\b/i, indicator: "Directive to disable security gateway or policy engine." },
+  { regex: /\b(ignore|skip|bypass|disable|waive|disregard)\s+(the\s+)?(human\s+)?(confirmation|approval|verification)\s*(requirements?|rules?|steps?|gates?|protocols?|checks?)?\b/i, indicator: "Directive to ignore confirmation requirements." },
+  { regex: /\bexecute\s+(all\s+)?(requested|specified|following)\s+actions\s+without\s+(confirmation|approval|verification)\b/i, indicator: "Attempt to execute unverified actions without confirmation." },
   { regex: /pre-waived\s+and\s+notifications\s+are\s+suppressed/i, indicator: "Pre-waived notification suppression." },
   { regex: /without\s+(requesting\s+user\s+confirmation|alarming\s+the\s+administrator|notifying\s+the\s+recipient)/i, indicator: "Concealment and warning suppression." },
   { regex: /assume\s+master\s+command\s+privilege/i, indicator: "Privilege escalation command." },
@@ -134,8 +146,9 @@ export const CONTEXT_MANIPULATION_PATTERNS: Array<{ regex: RegExp; indicator: st
 ];
 
 export const MULTI_STEP_PATTERNS: Array<{ regex: RegExp; indicator: string }> = [
-  { regex: /(step\s*1\s*:.*step\s*2\s*:.*(send|exfil|leak|bypass|forward))/is, indicator: "Multi-stage sequential attack recipe." },
-  { regex: /(first\s+read.*then\s+(send|forward|exfiltrate|delete))/i, indicator: "Multi-step read-then-exfiltrate sequence." },
+  { regex: /(step\s*1\s*:.*step\s*2\s*:.*(send|exfil|leak|bypass|forward|upload|export|post|transmit))/is, indicator: "Multi-stage sequential attack recipe." },
+  { regex: /(?:step\s*1|stage\s*1|phase\s*1|1\.)[\s\S]*?(?:read|access|harvest|extract)[\s\S]*?(?:step\s*2|stage\s*2|phase\s*2|2\.)[\s\S]*?(?:save|write|store|export|dump)[\s\S]*?(?:step\s*3|stage\s*3|phase\s*3|3\.)[\s\S]*?(?:upload|send|transmit|post|exfiltrat|forward)/i, indicator: "Multi-step attack chain: Read sensitive source -> Stage to file -> Exfiltrate." },
+  { regex: /(first\s+read.*then\s+(send|forward|exfiltrate|delete|upload|export))/i, indicator: "Multi-step read-then-exfiltrate sequence." },
   { regex: /(download|fetch).*and\s+(execute|run|install|wipe)/i, indicator: "Multi-step download and execute sequence." },
 ];
 
@@ -258,7 +271,57 @@ export class ThreatAnalyzer {
       this.scanBase64ConcealedPayloads(activeContent, targetContentId, depth, signals);
     }
 
+    // J. Obfuscation & ROT13 Payload Inspection (Decode strictly for inspection, never for execution)
+    if (depth < 2) {
+      this.scanRot13ConcealedPayloads(activeContent, targetContentId, depth, signals);
+    }
+
     return this.buildAssessment(targetContentId, signals);
+  }
+
+  private scanRot13ConcealedPayloads(
+    content: string,
+    targetContentId: string,
+    depth: number,
+    targetList: DetectedThreatSignal[]
+  ): void {
+    const hasRot13Signal =
+      /\b(rot-?13|caesar|cipher|obfuscat|encoded?\s+(instruction|payload)|decode\b)/i.test(content);
+
+    if (!hasRot13Signal) return;
+
+    try {
+      const decoded = this.decodeRot13(content);
+      const decodedAssessment = this.analyzeContent(
+        `${targetContentId}_rot13_${depth + 1}`,
+        decoded,
+        depth + 1
+      );
+
+      if (decodedAssessment.isThreatDetected) {
+        targetList.push({
+          category: "INDIRECT_PROMPT_INJECTION",
+          severity: "CRITICAL",
+          confidence: 0.98,
+          indicator: `Obfuscated ROT13 payload contains malicious directive: ${decodedAssessment.signals.map((s) => s.indicator).join("; ")}`,
+          evidenceSnippet: content.slice(0, 100).replace(/\r?\n/g, " "),
+        });
+
+        for (const sig of decodedAssessment.signals) {
+          targetList.push(sig);
+        }
+      }
+    } catch {
+      // Skip decoding errors
+    }
+  }
+
+  private decodeRot13(str: string): string {
+    return str.replace(/[a-zA-Z]/g, (c) => {
+      const code = c.charCodeAt(0);
+      const base = code >= 97 ? 97 : 65;
+      return String.fromCharCode(((code - base + 13) % 26) + base);
+    });
   }
 
   private scanBase64ConcealedPayloads(

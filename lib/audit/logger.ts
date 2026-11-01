@@ -47,6 +47,9 @@ export interface AuditEvent {
   toolExecutionAttempted?: boolean;
   toolExecutionResult?: string;
   finalOutcome?: string;
+  proposedAction?: string | Record<string, unknown>;
+  approvalStatus?: "PROPOSED" | "REQUIRE_CONFIRMATION" | "APPROVED" | "REJECTED" | "BLOCKED";
+  executionResult?: string;
   latencyMs?: number;
   reason?: string;
   payloadSummary?: string;
@@ -97,12 +100,15 @@ export interface SecurityTrace {
 
 export const SECRET_PATTERNS: RegExp[] = [
   /sk-[a-zA-Z0-9_-]{16,}/g, // Anthropic/OpenAI API keys
+  /gsk_[a-zA-Z0-9_-]{20,}/g, // Groq API keys
+  /AIza[0-9A-Za-z-_]{35}/g, // Google / Gemini API keys
   /AKIA[0-9A-Z]{16}/g, // AWS Access Key
   /ghp_[a-zA-Z0-9]{16,}/g, // GitHub Personal Access Token
   /xox[baprs]-[a-zA-Z0-9_-]+/g, // Slack token
   /-----BEGIN\s+(RSA|EC|OPENSSH|DSA|PGP|PRIVATE)\s+KEY-----[\s\S]*?-----END\s+(RSA|EC|OPENSSH|DSA|PGP|PRIVATE)\s+KEY-----/gi, // Cryptographic private keys
   /Bearer\s+[a-zA-Z0-9._~+/-]+=*/gi, // Bearer authentication tokens
-  /(canary[_-](token|secret|tripwire|key)|sk-canary)[a-zA-Z0-9_-]*/gi, // Canary tripwire tokens
+  /(?:canary[_-]?(?:token|secret|tripwire|key)|sk-canary)[a-zA-Z0-9_-]*/gi, // Canary tripwire tokens
+  /master(\x27s)?\s+(secret|canary|key|credential|token)/gi, // Master secret canary references
   /(\.env(\.local|\.production|\.development)?|\bcredentials\.json\b|\bid_rsa\b)/gi, // Sensitive file references
   /(?:password|passwd|secret|api_key|apikey|token|access_token)\s*[:=]\s*['"]?[^\s'";]+['"]?/gi, // Inline credential assignments
 ];
@@ -141,7 +147,12 @@ export function sanitizeObject(obj: unknown): unknown {
     const cleaned: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       const lowerKey = key.toLowerCase();
-      if (SENSITIVE_KEY_NAMES.some((s) => lowerKey.includes(s))) {
+      const isMetricCount =
+        key === "unauthorizedExecutions" ||
+        key === "secretAccessAttempts" ||
+        key === "confirmationBypassAttempts";
+
+      if (!isMetricCount && typeof value !== "number" && typeof value !== "boolean" && SENSITIVE_KEY_NAMES.some((s) => lowerKey.includes(s))) {
         cleaned[key] = "[REDACTED_SECRET]";
       } else {
         cleaned[key] = sanitizeObject(value);
@@ -206,6 +217,9 @@ export class AuditLogger {
       toolExecutionAttempted: event.toolExecutionAttempted,
       toolExecutionResult: event.toolExecutionResult,
       finalOutcome: event.finalOutcome,
+      proposedAction: event.proposedAction,
+      approvalStatus: event.approvalStatus,
+      executionResult: event.executionResult,
       latencyMs: event.latencyMs,
       reason: sanitizedReason || "Policy evaluation performed",
       payloadSummary: sanitizedPayload,
@@ -270,6 +284,56 @@ export class AuditLogger {
     return traces.sort(
       (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()
     );
+  }
+
+  /**
+   * Exports audit log records to CSV format with strict zero-secret sanitization.
+   * Guarantees API keys, credentials, canary tokens, and private keys are never exported.
+   */
+  exportEventsToCSV(limit: number = 1000): string {
+    const events = this.getRecentEvents(limit);
+    const headers = [
+      "Timestamp",
+      "Correlation ID",
+      "Source",
+      "Source Trust Level",
+      "Event Type",
+      "Threat Category",
+      "Severity",
+      "Policy Decision",
+      "Requested Tool",
+      "Proposed Action",
+      "Approval Status",
+      "Execution Result",
+      "Reason",
+    ];
+
+    const escapeCsv = (val: unknown): string => {
+      const raw = val === undefined || val === null ? "" : typeof val === "object" ? JSON.stringify(val) : String(val);
+      const sanitized = sanitizeText(raw);
+      if (sanitized.includes(",") || sanitized.includes('"') || sanitized.includes("\n")) {
+        return `"${sanitized.replace(/"/g, '""')}"`;
+      }
+      return sanitized;
+    };
+
+    const rows = events.map((e) => [
+      escapeCsv(e.timestamp),
+      escapeCsv(e.correlationId),
+      escapeCsv(e.source),
+      escapeCsv(e.sourceTrustLevel ?? "1 (External)"),
+      escapeCsv(e.eventType),
+      escapeCsv(e.threatCategory || "NONE"),
+      escapeCsv(e.severity || "NONE"),
+      escapeCsv(e.policyDecision || e.decision || "APPROVE"),
+      escapeCsv(e.requestedTool || e.toolName || "None"),
+      escapeCsv(e.proposedAction || "None"),
+      escapeCsv(e.approvalStatus || (e.finalOutcome?.includes("APPROVED") ? "APPROVED" : e.finalOutcome?.includes("REJECTED") ? "REJECTED" : "None")),
+      escapeCsv(e.executionResult || e.finalOutcome || e.toolExecutionResult || "COMPLETED"),
+      escapeCsv(e.reason || "Evaluated under standard security policy rules"),
+    ]);
+
+    return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
   }
 
   /**

@@ -7,6 +7,7 @@ import {
   RefreshCw,
   Trash2,
   GitCommit,
+  Download,
 } from "lucide-react";
 import { defaultAuditLogger, AuditEvent } from "@/lib/audit/logger";
 
@@ -16,24 +17,53 @@ interface AuditTrailProps {
 
 export function AuditTrail({ onNavigateToTrace }: AuditTrailProps = {}) {
   const [events, setEvents] = useState<AuditEvent[]>([]);
+  const [stats, setStats] = useState({ total: 0, blocked: 0, approved: 0, confirmation: 0, threats: 0 });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [filterDecision, setFilterDecision] = useState<string>("ALL");
   const [filterEventType, setFilterEventType] = useState<string>("ALL");
   const [selectedEvent, setSelectedEvent] = useState<AuditEvent | null>(null);
 
-  const refreshEvents = () => {
-    setEvents(defaultAuditLogger.getRecentEvents(100));
+  const refreshEvents = async () => {
+    try {
+      const res = await fetch("/api/audit");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.events)) {
+          setEvents(data.events);
+          if (data.stats) {
+            setStats(data.stats);
+          }
+          return;
+        }
+      }
+    } catch {
+      // Fallback to local in-memory logger if network unavailable
+    }
+    const fallbackEvents = defaultAuditLogger.getRecentEvents(100);
+    setEvents(fallbackEvents);
+    setStats(defaultAuditLogger.getStats());
   };
 
   useEffect(() => {
-    refreshEvents();
-    const interval = setInterval(refreshEvents, 2000);
+    refreshEvents().finally(() => setIsLoading(false));
+    const interval = setInterval(refreshEvents, 2500);
     return () => clearInterval(interval);
   }, []);
 
-  const handleClear = () => {
+  const handleClear = async () => {
+    try {
+      await fetch("/api/audit", { method: "DELETE" });
+    } catch {
+      // ignore
+    }
     defaultAuditLogger.clear();
     setEvents([]);
+    setStats({ total: 0, blocked: 0, approved: 0, confirmation: 0, threats: 0 });
+  };
+
+  const handleDownloadCSV = () => {
+    window.open("/api/audit?format=csv", "_blank");
   };
 
   const filtered = events.filter((evt) => {
@@ -50,46 +80,54 @@ export function AuditTrail({ onNavigateToTrace }: AuditTrailProps = {}) {
     return true;
   });
 
-  const stats = defaultAuditLogger.getStats();
-
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="rounded-2xl border border-[#E8ECE9] bg-white p-6 shadow-sm space-y-4">
+      <div className="rounded-2xl border border-[#E4DEC8] bg-[#FCFAF5] p-6 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <div className="flex items-center space-x-2 text-[#678882] font-mono text-xs uppercase tracking-widest mb-1">
-              <ScrollText className="w-4 h-4 text-[#2E595A]" />
-              <span>Cryptographic Compliance</span>
+              <ScrollText className="w-4 h-4 text-[#052326]" />
+              <span>Enterprise Compliance</span>
               <span>•</span>
               <span className="text-[#C9A86A]">Zero-Secret Forensics</span>
             </div>
             <h1 className="text-2xl font-serif font-bold text-[#052326]">
-              Tamper-Evident Audit Trail
+              Enterprise Audit Center
             </h1>
-            <p className="text-[#2E595A] text-xs sm:text-sm mt-1">
-              Structured immutable security logs capturing agent reasoning cycles, gateway decisions, and parameter taint.
+            <p className="text-[#678882] text-xs sm:text-sm mt-1">
+              Tamper-evident immutable security logs capturing agent reasoning cycles, gateway decisions, and human approvals.
             </p>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleDownloadCSV}
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-xl bg-[#052326] text-white hover:bg-[#0A2E33] border border-[#052326] text-xs font-semibold shadow-xs transition-all"
+            >
+              <Download className="w-3.5 h-3.5 text-[#C9A86A]" />
+              <span>Download Audit Report</span>
+            </button>
+
             <button
               onClick={refreshEvents}
-              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-[#FBF9F8] hover:bg-[#EBF1ED] border border-[#E8ECE9] text-[#052326] text-xs font-semibold transition-all"
+              disabled={isLoading}
+              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-[#FCFAF5] hover:bg-[#FAF7EE] border border-[#E4DEC8] text-[#052326] text-xs font-semibold transition-all disabled:opacity-60"
             >
-              <RefreshCw className="w-3.5 h-3.5 text-[#2E595A]" />
+              <RefreshCw className={`w-3.5 h-3.5 text-[#678882] ${isLoading ? "animate-spin" : ""}`} />
               <span>Refresh</span>
             </button>
 
             <button
               onClick={handleClear}
-              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-white hover:bg-[#FAF5EB] border border-[#C9A86A]/40 text-[#C9A86A] text-xs font-semibold transition-all"
+              className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-xl bg-[#FCFAF5] hover:bg-[#FDF0ED] border border-[#E4DEC8] text-[#678882] hover:text-[#C2410C] text-xs font-semibold transition-all"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Clear Log</span>
             </button>
           </div>
         </div>
+
 
         {/* Real-time stats chip bar */}
         <div className="pt-3 border-t border-[#E8ECE9] grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
@@ -168,8 +206,19 @@ export function AuditTrail({ onNavigateToTrace }: AuditTrailProps = {}) {
             <tbody className="divide-y divide-[#E8ECE9]">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-[#678882]">
-                    No audit records matching criteria.
+                  <td colSpan={6} className="py-12 text-center">
+                    <div className="max-w-md mx-auto space-y-1.5">
+                      <p className="text-xs font-semibold text-[#052326]">
+                        {events.length === 0
+                          ? "No audit events logged in this server session."
+                          : "No audit records matching criteria."}
+                      </p>
+                      <p className="text-[11px] text-[#678882]">
+                        {events.length === 0
+                          ? "Security events generated by agent queries, file inspections, and policy decisions will be streamed here in real-time."
+                          : "Try adjusting your search terms or filter selection."}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (
@@ -228,21 +277,23 @@ export function AuditTrail({ onNavigateToTrace }: AuditTrailProps = {}) {
 
       {/* Selected Event Modal Drawer */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-50 bg-[#052326]/30 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-[#E8ECE9] max-w-lg w-full p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E8ECE9]">
+        <div className="fixed inset-0 z-50 bg-[#052326]/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#FCFAF5] rounded-2xl border border-[#E4DEC8] max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E4DEC8]">
               <div className="flex items-center space-x-2">
                 <span className="font-serif font-bold text-base text-[#052326]">
-                  Audit Record Details
+                  Security Event Record
                 </span>
                 <span
-                  className={`font-mono text-[10px] px-2 py-0.5 rounded font-bold ${
+                  className={`text-[10px] px-2 py-0.5 rounded font-bold uppercase ${
                     selectedEvent.decision === "BLOCK"
-                      ? "bg-[#FAF5EB] text-[#C9A86A]"
-                      : "bg-[#EBF1ED] text-[#2E595A]"
+                      ? "bg-[#C2410C] text-white"
+                      : selectedEvent.decision === "REQUIRE_CONFIRMATION"
+                      ? "bg-[#C9A86A] text-white"
+                      : "bg-[#1E5E4E] text-white"
                   }`}
                 >
-                  {selectedEvent.decision}
+                  {selectedEvent.decision || "APPROVE"}
                 </span>
               </div>
               <button
@@ -253,40 +304,73 @@ export function AuditTrail({ onNavigateToTrace }: AuditTrailProps = {}) {
               </button>
             </div>
 
-            <div className="space-y-2 text-xs font-mono">
-              <div className="p-3 rounded-lg bg-[#FBF9F8] border border-[#E8ECE9] space-y-1">
-                <div>ID: {selectedEvent.id}</div>
-                <div>Correlation ID: {selectedEvent.correlationId}</div>
-                <div>Event Type: {selectedEvent.eventType}</div>
-                <div>Source: {selectedEvent.source}</div>
-                <div>Tool Target: {selectedEvent.toolName || selectedEvent.requestedTool || "None"}</div>
+            <div className="space-y-3 text-xs">
+              <div className="bg-[#FAF7EE] p-3.5 rounded-xl border border-[#E4DEC8] space-y-2">
+                <div className="flex justify-between py-1 border-b border-[#E4DEC8]/50">
+                  <span className="text-[#678882]">Date</span>
+                  <span className="font-medium text-[#052326]">
+                    {new Date(selectedEvent.timestamp).toLocaleString("en-US", {
+                      day: "2-digit",
+                      month: "short",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#E4DEC8]/50">
+                  <span className="text-[#678882]">Event</span>
+                  <span className="font-semibold text-[#052326]">{selectedEvent.eventType.replace(/_/g, " ")}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#E4DEC8]/50">
+                  <span className="text-[#678882]">Source</span>
+                  <span className="text-[#052326] capitalize">{selectedEvent.source || "System Gateway"}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#E4DEC8]/50">
+                  <span className="text-[#678882]">Threat</span>
+                  <span className="font-medium text-[#052326]">{selectedEvent.threatCategory?.replace(/_/g, " ") || "None"}</span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#E4DEC8]/50">
+                  <span className="text-[#678882]">Risk</span>
+                  <span className={`font-bold ${selectedEvent.severity === "CRITICAL" || selectedEvent.severity === "HIGH" ? "text-[#C2410C]" : "text-[#1E5E4E]"}`}>
+                    {selectedEvent.severity || "NONE"}
+                  </span>
+                </div>
+                <div className="flex justify-between py-1 border-b border-[#E4DEC8]/50">
+                  <span className="text-[#678882]">Action</span>
+                  <span className="font-mono text-[#052326]">
+                    {selectedEvent.decision === "BLOCK"
+                      ? "No external action executed"
+                      : selectedEvent.toolName || selectedEvent.requestedTool || "No tool requested"}
+                  </span>
+                </div>
               </div>
 
               <div>
                 <span className="text-[10px] uppercase font-bold text-[#678882] tracking-wider block mb-1">
-                  Enforcement Explanation:
+                  Reason & Policy Enforcement:
                 </span>
-                <p className="p-2 rounded bg-[#FAF5EB] border border-[#C9A86A]/30 text-[#052326]">
-                  {selectedEvent.reason}
+                <p className="p-3 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] text-xs text-[#052326] leading-relaxed">
+                  {selectedEvent.reason || "Evaluated under standard security policy rules."}
                 </p>
               </div>
 
               {selectedEvent.payloadSummary && (
                 <div>
                   <span className="text-[10px] uppercase font-bold text-[#678882] tracking-wider block mb-1">
-                    Sanitized Payload:
+                    Sanitized Payload Metadata:
                   </span>
-                  <pre className="p-2 rounded bg-[#FBF9F8] border border-[#E8ECE9] text-[10px] text-[#678882] overflow-x-auto">
+                  <pre className="p-2.5 rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] text-[10px] font-mono text-[#678882] overflow-x-auto">
                     {selectedEvent.payloadSummary}
                   </pre>
                 </div>
               )}
             </div>
 
-            <div className="pt-3 border-t border-[#E8ECE9] flex justify-end space-x-2">
+            <div className="pt-3 border-t border-[#E4DEC8] flex justify-end space-x-2">
               <button
                 onClick={() => setSelectedEvent(null)}
-                className="px-3 py-1.5 rounded-lg border border-[#E8ECE9] text-xs text-[#678882] hover:text-[#052326]"
+                className="px-3 py-1.5 rounded-xl border border-[#E4DEC8] text-xs text-[#678882] hover:text-[#052326]"
               >
                 Dismiss
               </button>
@@ -297,7 +381,7 @@ export function AuditTrail({ onNavigateToTrace }: AuditTrailProps = {}) {
                     setSelectedEvent(null);
                     onNavigateToTrace(cid);
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-[#052326] text-white text-xs font-semibold hover:bg-[#2E595A]"
+                  className="px-3.5 py-1.5 rounded-xl bg-[#052326] text-white text-xs font-semibold hover:bg-[#0A2E33]"
                 >
                   Inspect Full Trace
                 </button>
@@ -306,6 +390,7 @@ export function AuditTrail({ onNavigateToTrace }: AuditTrailProps = {}) {
           </div>
         </div>
       )}
+
     </div>
   );
 }

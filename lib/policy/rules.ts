@@ -84,16 +84,17 @@ export const BUILTIN_POLICY_RULES: SecurityPolicyRule[] = [
       // If tool is state-mutating or exfiltrating (e.g. send_email), but user never asked to send an email:
       if (toolName === "send_email") {
         const userRequestedSend =
-          userGoal.includes("send email") ||
-          userGoal.includes("email to") ||
-          userGoal.includes("forward to") ||
-          userGoal.includes("compose");
+          (ctx.trustContext.trustLevel > 1) &&
+          (userGoal.includes("send email") ||
+            userGoal.includes("email to") ||
+            userGoal.includes("forward to") ||
+            userGoal.includes("compose"));
 
-        if (!userRequestedSend) {
+        if (!userRequestedSend || ctx.trustContext.trustLevel === 1) {
           return {
             ruleId: "SEC-RULE-002",
             ruleName: "GOAL_HIJACKING_PREVENTION",
-            description: "Agent attempted send_email action that was not authorized by the user intent.",
+            description: "Agent attempted send_email action that was not authorized by the user intent or originated from untrusted external content.",
             action: "BLOCK",
             severity: "HIGH",
           };
@@ -193,13 +194,19 @@ export const BUILTIN_POLICY_RULES: SecurityPolicyRule[] = [
     description: "Blocks unauthorized privilege escalation and attempts to bypass human confirmation.",
     evaluate: (ctx) => {
       const rawParams = JSON.stringify(ctx.toolRequest.parameters).toLowerCase();
+      const userGoal = (ctx.userObjective || "").toLowerCase();
       if (
         rawParams.includes("bypass confirmation") ||
         rawParams.includes("bypass_confirmation") ||
         rawParams.includes("skip confirmation") ||
         rawParams.includes("skip_confirmation") ||
         rawParams.includes("sudo") ||
-        rawParams.includes("runas root")
+        rawParams.includes("runas root") ||
+        userGoal.includes("bypass confirmation") ||
+        userGoal.includes("pre-approved") ||
+        userGoal.includes("pre_approved") ||
+        userGoal.includes("already approved") ||
+        userGoal.includes("already reviewed")
       ) {
         return {
           ruleId: "SEC-RULE-006",

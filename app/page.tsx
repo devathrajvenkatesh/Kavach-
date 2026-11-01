@@ -20,6 +20,7 @@ export default function HomePage() {
   const [selectedLabCategory, setSelectedLabCategory] = useState<string>("ALL");
   const [selectedDemoCase, setSelectedDemoCase] = useState<UnifiedTestCase | undefined>(undefined);
   const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>(undefined);
+  const [selectedWorkspaceFileForAgent, setSelectedWorkspaceFileForAgent] = useState<WorkspaceFile | null>(null);
 
   const handleNavigateToAttackLab = (category?: string) => {
     if (category) setSelectedLabCategory(category);
@@ -37,21 +38,7 @@ export default function HomePage() {
   };
 
   const handleFileToAgent = (file: WorkspaceFile) => {
-    const isThreat = file.securityStatus === "THREAT_DETECTED" || file.securityStatus === "BLOCKED";
-    const demoCase: UnifiedTestCase = {
-      id: file.id,
-      name: file.name,
-      category: "INDIRECT_PROMPT_INJECTION",
-      severity: file.riskLevel,
-      sourceType: file.type === "Email" ? "email_body" : file.type === "PDF" ? "pdf_document" : "file_content",
-      userIntent: `Analyze document "${file.name}" and provide a summary of any action items.`,
-      payload: file.extractedPreview,
-      expectedThreat: isThreat,
-      expectedDecision: isThreat ? "BLOCK" : "APPROVE",
-      expectedExecution: !isThreat,
-      description: `Uploaded file inspection: ${file.summary}`,
-    };
-    setSelectedDemoCase(demoCase);
+    setSelectedWorkspaceFileForAgent(file);
     setActiveKey("ai-agent");
   };
 
@@ -83,7 +70,11 @@ export default function HomePage() {
           )}
 
           {(activeKey === "ai-agent" || activeKey === "live-agent") && (
-            <LiveAttackDemo initialCase={selectedDemoCase} />
+            <LiveAttackDemo
+              initialCase={selectedDemoCase}
+              initialWorkspaceFile={selectedWorkspaceFileForAgent}
+              onClearWorkspaceFile={() => setSelectedWorkspaceFileForAgent(null)}
+            />
           )}
 
           {(activeKey === "files" ||

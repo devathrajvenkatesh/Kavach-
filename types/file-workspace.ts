@@ -6,6 +6,7 @@
  */
 
 import { ThreatCategory, ThreatSeverity, DetectedThreatSignal } from "./threat";
+import { UrgencyTriage, ReplyDraft } from "./agent";
 
 export type FileSecurityStatus =
   | "SAFE"
@@ -43,6 +44,7 @@ export interface ActionControl {
   reason: string;
 }
 
+
 export interface WorkspaceFile {
   id: string;
   name: string;
@@ -66,7 +68,12 @@ export interface WorkspaceFile {
   documentIntelligence?: DocumentIntelligence;
   securityIntelligence?: SecurityIntelligence;
   actionControl?: ActionControl;
+  urgency?: UrgencyTriage;
+  replyDraft?: ReplyDraft;
+  isQuarantined?: boolean;
+  quarantineReason?: string;
 }
+
 
 export interface FileUploadProgress {
   fileName: string;

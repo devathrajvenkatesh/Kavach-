@@ -17,8 +17,17 @@ import {
   FolderLock,
   Layers,
   ChevronRight,
+  Mail,
+  FileText,
+  AlertTriangle,
 } from "lucide-react";
 import { defaultAuditLogger, AuditEvent } from "@/lib/audit/logger";
+import { WorkspaceFile } from "@/types/file-workspace";
+import { formatReadingTime } from "@/lib/intelligence/triage";
+import {
+  getStoredWorkspaceFiles,
+  subscribeToWorkspaceFiles,
+} from "@/lib/files/workspace-store";
 
 interface CommandCenterProps {
   onNavigateToAttackLab: (category?: string) => void;
@@ -39,7 +48,9 @@ export function CommandCenter({
 }: CommandCenterProps) {
   const [recentEvents, setRecentEvents] = useState<AuditEvent[]>([]);
   const [lastActivityTime, setLastActivityTime] = useState<string>("Just now");
+  const [radarFiles, setRadarFiles] = useState<WorkspaceFile[]>([]);
   const [quickInput, setQuickInput] = useState("");
+
   const [quickDemoResponse, setQuickDemoResponse] = useState<{
     prompt: string;
     response: string;
@@ -68,8 +79,20 @@ export function CommandCenter({
       setRecentEvents(updated);
     }, 2500);
 
-    return () => clearInterval(interval);
+    // Initial load from authoritative workspace store
+    setRadarFiles(getStoredWorkspaceFiles());
+
+    // Subscribe to real-time updates from workspace file inspections
+    const unsubscribeFiles = subscribeToWorkspaceFiles((updated) => {
+      setRadarFiles(updated);
+    });
+
+    return () => {
+      clearInterval(interval);
+      unsubscribeFiles();
+    };
   }, []);
+
 
   const handleQuickPromptClick = (promptText: string, isAdversarial: boolean) => {
     setQuickInput(promptText);
@@ -253,6 +276,157 @@ export function CommandCenter({
             Tamper-evident audit log
           </p>
         </div>
+      </section>
+
+      {/* 2.5 EXECUTIVE RADAR & CONTENT TRIAGE */}
+      <section className="bg-[#FCFAF5] rounded-2xl border border-[#E4DEC8] p-6 shadow-xs">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-4 border-b border-[#E4DEC8]">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-[#052326] text-[#C9A86A] rounded-xl shadow-xs">
+              <Radio className="w-5 h-5 text-[#C9A86A] animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold text-[#052326]">
+                  Executive Radar
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#EBF1ED] text-[#1E5E4E] border border-[#C5DDD2]">
+                  Priority Triage
+                </span>
+              </div>
+              <p className="text-xs text-[#678882]">
+                Content-driven urgency classification, estimated reading time, and zero-authority protection.
+              </p>
+            </div>
+          </div>
+
+          {onNavigateToFiles && (
+            <button
+              onClick={onNavigateToFiles}
+              className="text-xs font-semibold text-[#2E595A] hover:text-[#052326] flex items-center gap-1 transition-colors"
+            >
+              <span>Manage Ingested Files</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Priority Grid or Clean Empty State */}
+        {radarFiles.length === 0 ? (
+          <div className="bg-white rounded-xl border border-dashed border-[#E4DEC8] p-8 text-center mt-4">
+            <Radio className="w-8 h-8 text-[#C9A86A] mx-auto mb-2 opacity-60" />
+            <h4 className="text-sm font-bold text-[#052326]">Executive Radar Standing By</h4>
+            <p className="text-xs text-[#678882] max-w-md mx-auto mt-1 mb-4">
+              No documents currently ingested in your Secure Workspace. Upload emails or PDFs to trigger real-time content triage, reading time estimation, and threat isolation.
+            </p>
+            {onNavigateToFiles && (
+              <button
+                onClick={onNavigateToFiles}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#052326] text-white text-xs font-semibold hover:bg-[#0A2E33] transition-all shadow-xs"
+              >
+                <FolderLock className="w-3.5 h-3.5 text-[#C9A86A]" />
+                <span>Go to Secure File Workspace</span>
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+            {radarFiles.map((file) => {
+              const urgencyLevel = file.urgency?.level || "NORMAL";
+              const isCritical = urgencyLevel === "CRITICAL";
+              const isInfo = urgencyLevel === "INFORMATIONAL";
+              const isThreatBlocked =
+                file.securityStatus === "BLOCKED" ||
+                file.securityStatus === "THREAT_DETECTED" ||
+                file.isQuarantined;
+
+              return (
+                <div
+                  key={file.id}
+                  onClick={onNavigateToFiles}
+                  className={`p-4 rounded-xl border transition-all cursor-pointer group flex flex-col justify-between ${
+                    isThreatBlocked
+                      ? "bg-[#FEF5F2] border-[#F8C8BA] hover:border-[#EA580C]"
+                      : isCritical
+                      ? "bg-[#FFFBF5] border-[#F2DEB8] hover:border-[#D97706]"
+                      : "bg-white border-[#E4DEC8] hover:border-[#678882]"
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span
+                        className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
+                          isCritical
+                            ? "bg-[#FDF0ED] text-[#C2410C]"
+                            : isInfo
+                            ? "bg-[#F3F4F6] text-[#4B5563]"
+                            : "bg-[#FEF9EE] text-[#B45309]"
+                        }`}
+                      >
+                        {isCritical ? "🔥 CRITICAL" : isInfo ? "💤 INFORMATIONAL" : "⚡ NORMAL"}
+                      </span>
+
+                      {/* Security classification takes visual & logical priority over urgency */}
+                      {isThreatBlocked ? (
+                        <span className="text-[9px] font-mono font-bold text-[#DC2626] bg-[#FEF2F2] border border-[#FCA5A5] px-1.5 py-0.5 rounded flex items-center gap-1">
+                          <Lock className="w-3 h-3" />
+                          QUARANTINED
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-mono text-[#678882] flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {formatReadingTime(file.urgency?.estimatedReadingTimeSeconds || 60)}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 mb-1.5">
+                      {file.type === "Email" ? (
+                        <Mail className="w-4 h-4 text-[#2E595A] shrink-0" />
+                      ) : (
+                        <FileText className="w-4 h-4 text-[#C9A86A] shrink-0" />
+                      )}
+                      <span className="text-xs font-bold text-[#052326] truncate group-hover:text-[#2E595A]">
+                        {file.name}
+                      </span>
+                    </div>
+
+                    {isThreatBlocked && (
+                      <div className="text-[10px] font-mono font-bold text-[#DC2626] bg-white/80 p-1 rounded border border-[#FCA5A5]/60 mb-1.5">
+                        ⛔ THREAT QUARANTINED — AUTHORITY DENIED
+                      </div>
+                    )}
+
+                    <p className="text-[11px] text-[#678882] line-clamp-2 leading-relaxed">
+                      {file.urgency?.reason || file.summary}
+                    </p>
+                  </div>
+
+                  <div className="mt-3 pt-2.5 border-t border-[#E4DEC8]/60 flex items-center justify-between text-[10px]">
+                    {isThreatBlocked ? (
+                      <span className="font-bold text-[#C2410C] flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        Quarantined
+                      </span>
+                    ) : file.replyDraft ? (
+                      <span className="font-medium text-[#1E5E4E] flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-[#1E5E4E]" />
+                        Draft Ready
+                      </span>
+                    ) : (
+                      <span className="font-mono text-[#678882]">{file.formattedSize}</span>
+                    )}
+
+                    <span className="text-[#678882] group-hover:text-[#052326] font-medium flex items-center gap-0.5">
+                      View
+                      <ArrowRight className="w-3 h-3" />
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* 3. MIDDLE SECTION: AI AGENT / MAIN WORKSPACE & SECURITY MONITOR */}
