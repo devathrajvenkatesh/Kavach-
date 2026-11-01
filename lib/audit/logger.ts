@@ -422,4 +422,6 @@ export class AuditLogger {
   }
 }
 
-export const defaultAuditLogger = new AuditLogger();
+const globalForAudit = globalThis as unknown as { kavachAuditLogger?: AuditLogger };
+export const defaultAuditLogger = globalForAudit.kavachAuditLogger ?? new AuditLogger();
+globalForAudit.kavachAuditLogger = defaultAuditLogger;
