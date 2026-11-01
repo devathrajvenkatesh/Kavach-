@@ -25,7 +25,7 @@ import { UnifiedTestCase, AttackExecutionResult } from "@/lib/attack-lab/types";
 import { ALL_TEST_CASES } from "@/lib/attack-lab/dataset-loader";
 import { defaultPipelineRunner } from "@/lib/attack-lab/pipeline-runner";
 import { UrgencyTriage, ProposedAction, ReplyDraft } from "@/types/agent";
-import { formatReadingTime } from "@/lib/intelligence/triage";
+import { formatReadingTime, draftToProposedAction } from "@/lib/intelligence/triage";
 import { WorkspaceFile, FileSecurityStatus } from "@/types/file-workspace";
 
 export type DemoStage =
@@ -128,13 +128,17 @@ const QUICK_TEST_PROMPTS = [
 interface LiveAttackDemoProps {
   initialCase?: UnifiedTestCase;
   initialWorkspaceFile?: WorkspaceFile | null;
+  initialQueuedDraft?: { file: WorkspaceFile; draft: ReplyDraft } | null;
   onClearWorkspaceFile?: () => void;
+  onClearQueuedDraft?: () => void;
 }
 
 export function LiveAttackDemo({
   initialCase,
   initialWorkspaceFile,
+  initialQueuedDraft,
   onClearWorkspaceFile,
+  onClearQueuedDraft,
 }: LiveAttackDemoProps) {
   // Tab Mode
   const [activeTab, setActiveTab] = useState<"live-chat" | "attack-stepper">("live-chat");
@@ -289,6 +293,48 @@ export function LiveAttackDemo({
       );
     }
   }, [initialWorkspaceFile]);
+
+  // Handle direct reply draft queue from Secure Workspace or Executive Radar
+  useEffect(() => {
+    if (initialQueuedDraft) {
+      setActiveTab("live-chat");
+      const isThreat: boolean = Boolean(
+        initialQueuedDraft.file.securityStatus === "BLOCKED" ||
+        initialQueuedDraft.file.securityStatus === "THREAT_DETECTED" ||
+        initialQueuedDraft.file.isQuarantined
+      );
+
+      const proposed = draftToProposedAction(initialQueuedDraft.draft, {
+        isThreatOrQuarantined: isThreat,
+      });
+
+      const queuedMsgId = `msg_queued_${Date.now()}`;
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: queuedMsgId,
+          role: "assistant",
+          content: isThreat
+            ? `[SECURITY INTERCEPT] Ingested document "${initialQueuedDraft.file.name}" was quarantined as an adversarial threat. Action proposal has been automatically blocked.`
+            : `Draft reply prepared for ingested email "${initialQueuedDraft.file.name}". Queued to Human Authorization Gate for explicit human review.`,
+          status: isThreat ? "BLOCKED" : "REQUIRES_CONFIRMATION",
+          replyDraft: initialQueuedDraft.draft,
+          proposedAction: proposed,
+          security: {
+            attackDetected: isThreat,
+            decision: isThreat ? "BLOCK" : "REQUIRE_CONFIRMATION",
+            correlationId: `corr_queued_${Date.now()}`,
+          },
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+
+      if (onClearQueuedDraft) {
+        onClearQueuedDraft();
+      }
+    }
+  }, [initialQueuedDraft, onClearQueuedDraft]);
+
 
   // Scroll chat messages to bottom on new message
   useEffect(() => {
@@ -746,14 +792,43 @@ export function LiveAttackDemo({
                         <div className="p-2.5 rounded-lg bg-white border border-[#E4DEC8] text-xs text-[#052326] whitespace-pre-wrap">
                           {msg.replyDraft.body}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setInputMessage(msg.replyDraft!.body)}
-                          className="text-[11px] font-semibold text-[#2E595A] hover:text-[#052326] flex items-center gap-1 transition-colors"
-                        >
-                          <span>Copy draft into chat input</span>
-                          <ChevronRight className="w-3 h-3" />
-                        </button>
+                        <div className="flex items-center justify-between pt-1 gap-2 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => setInputMessage(msg.replyDraft!.body)}
+                            className="text-[11px] font-semibold text-[#2E595A] hover:text-[#052326] flex items-center gap-1 transition-colors"
+                          >
+                            <span>Copy draft into chat input</span>
+                            <ChevronRight className="w-3 h-3" />
+                          </button>
+
+                          {!msg.proposedAction && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const isThreat = msg.security?.attackDetected || msg.status === "BLOCKED";
+                                const proposed = draftToProposedAction(msg.replyDraft!, {
+                                  isThreatOrQuarantined: isThreat,
+                                });
+                                setChatMessages((prev) =>
+                                  prev.map((m) =>
+                                    m.id === msg.id
+                                      ? {
+                                          ...m,
+                                          proposedAction: proposed,
+                                          status: isThreat ? "BLOCKED" : "REQUIRES_CONFIRMATION",
+                                        }
+                                      : m
+                                  )
+                                );
+                              }}
+                              className="text-[11px] font-semibold text-[#052326] bg-[#FAF5EB] hover:bg-[#F2DEB8] border border-[#C9A86A]/40 px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors shadow-xs"
+                            >
+                              <Send className="w-3 h-3 text-[#C9A86A]" />
+                              <span>Queue as Proposed Action</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
 

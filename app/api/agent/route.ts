@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AgentOrchestrator } from "@/lib/agent/orchestrator";
-import { AgentRequest, TrustLevel } from "@/types";
+import { AgentRequest, ToolRequest, TrustLevel } from "@/types";
 import { ConfigurationError } from "@/lib/agent/provider/types";
 import { defaultToolGateway } from "@/lib/tools/gateway";
+import { defaultSecurityGateway } from "@/lib/security/gateway";
 import { defaultAuditLogger } from "@/lib/audit/logger";
+import { sanitizeText } from "@/lib/security/sanitizer";
 import { evaluateUrgency, generateAutoDraftReply } from "@/lib/intelligence/triage";
 import { parseUploadedFile } from "@/lib/files/file-parser";
 import { defaultThreatAnalyzer } from "@/lib/security/threat-analyzer";
@@ -64,34 +66,64 @@ export async function POST(req: NextRequest) {
       const effectiveCorrId = correlationId || `corr_${Date.now()}`;
 
       if (approved) {
-        // Human explicitly approved the action
-        const toolResult = await defaultToolGateway.executeTool(
-          {
-            id: `req_approved_${Date.now()}`,
-            sessionId: conversationId,
-            correlationId: effectiveCorrId,
-            toolName,
-            parameters: parameters || {},
-            trustContext: {
-              contextId: `ctx_${conversationId}`,
-              source: "human_confirmation",
-              trustLevel: TrustLevel.USER_INTENT,
-              isVerifiedUser: true,
-              taintFlags: [],
-            },
-            requestedAt: new Date().toISOString(),
+        // Human approved the action, but it MUST still pass through Security Gateway + Policy Engine
+        const toolRequest: ToolRequest = {
+          id: `req_approved_${Date.now()}`,
+          sessionId: conversationId,
+          correlationId: effectiveCorrId,
+          toolName,
+          parameters: parameters || {},
+          trustContext: {
+            contextId: `ctx_${conversationId}`,
+            source: "human_confirmation",
+            trustLevel: TrustLevel.USER_INTENT,
+            isVerifiedUser: true,
+            taintFlags: [],
           },
-          {
-            id: `pol_approved_${Date.now()}`,
-            requestId: `req_approved_${Date.now()}`,
-            decision: "APPROVE",
-            requiresHumanApproval: false,
-            reason: "Action authorized and approved by verified human operator.",
-            matchedRules: [],
-            enforcedTrustLevel: TrustLevel.USER_INTENT,
-            evaluatedAt: new Date().toISOString(),
-          }
-        );
+          requestedAt: new Date().toISOString(),
+        };
+
+        const { decision: policyDecision } = await defaultSecurityGateway.evaluateToolRequest({
+          toolRequest,
+          trustContext: toolRequest.trustContext,
+          userObjective: `User confirmed and authorized execution of action: ${toolName}`,
+        });
+
+        // Fail-closed: Even with human approval, policy blocks must never execute
+        if (policyDecision.decision === "BLOCK") {
+          defaultAuditLogger.logEvent({
+            correlationId: effectiveCorrId,
+            eventType: "TOOL_BLOCKED",
+            source: "human_confirmation_gate",
+            sourceType: "policy_override",
+            requestedTool: toolName,
+            toolArgumentsMetadata: parameters,
+            policyDecision: "BLOCK",
+            decision: "BLOCK",
+            finalOutcome: "POLICY_BLOCKED",
+            reason: `Action blocked by policy despite approval: ${policyDecision.reason}`,
+          });
+
+          return NextResponse.json({
+            success: false,
+            status: "BLOCKED",
+            error: `Security Policy Violation: ${policyDecision.reason}`,
+            response: `Action "${toolName}" was rejected by policy: ${policyDecision.reason}`,
+            toolExecutions: [
+              {
+                toolName,
+                status: "BLOCKED_BY_POLICY",
+              },
+            ],
+          });
+        }
+
+        const toolResult = await defaultToolGateway.executeTool(toolRequest, {
+          ...policyDecision,
+          decision: "APPROVE",
+          requiresHumanApproval: false,
+          reason: "Action authorized and approved by verified human operator.",
+        });
 
         defaultAuditLogger.logEvent({
           correlationId: effectiveCorrId,
@@ -396,11 +428,9 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error: unknown) {
-    // Sanitized Error Handling (never expose stack traces or raw keys)
+    // Sanitized Error Handling (authoritative: lib/security/sanitizer.ts)
     const rawError = error instanceof Error ? error.message : "Internal server error";
-    const sanitizedError = rawError
-      .replace(/AIza[0-9A-Za-z-_]{35}/g, "[REDACTED_API_KEY]")
-      .replace(/Bearer\s+[A-Za-z0-9-_.]+/gi, "[REDACTED_TOKEN]");
+    const sanitizedError = sanitizeText(rawError);
 
     return NextResponse.json(
       {

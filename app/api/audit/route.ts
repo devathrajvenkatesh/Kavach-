@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { defaultAuditLogger, sanitizeObject, sanitizeText } from "@/lib/audit/logger";
+import { defaultAuditLogger } from "@/lib/audit/logger";
+import { sanitizeObject, sanitizeText } from "@/lib/security/sanitizer";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,7 +41,10 @@ export async function GET(req: NextRequest) {
 
     // Apply strict sanitization pass
     events = sanitizeObject(events) as typeof events;
-    const metrics = sanitizeObject(defaultAuditLogger.getTelemetryMetrics());
+    const metrics = sanitizeObject({
+      totalEvents: defaultAuditLogger.getRecentEvents(1000).length,
+      ...defaultAuditLogger.getTelemetryMetrics(),
+    });
     const stats = defaultAuditLogger.getStats();
 
     return NextResponse.json(

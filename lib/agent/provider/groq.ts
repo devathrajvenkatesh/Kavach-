@@ -21,6 +21,7 @@ import {
 } from "@/types";
 import { ConfigurationError } from "./types";
 import { KAVACH_MASTER_SYSTEM_INSTRUCTIONS } from "@/lib/llm/prompts/kavach-system";
+import { sanitizeText } from "@/lib/security/sanitizer";
 
 export class GroqLLMProvider implements LLMProvider {
   readonly providerName = "groq";
@@ -177,7 +178,7 @@ export class GroqLLMProvider implements LLMProvider {
 
       const rawMsg = error instanceof Error ? error.message : "Unknown Groq API error";
       // Sanitize: Never expose API key or sensitive credentials in error traces
-      const sanitizedMsg = rawMsg.replace(/gsk_[a-zA-Z0-9_\-]+/gi, "[REDACTED_API_KEY]");
+      const sanitizedMsg = sanitizeText(rawMsg);
       throw new Error(`[GroqLLMProvider Error]: ${sanitizedMsg}`);
     }
   }

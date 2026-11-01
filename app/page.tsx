@@ -14,6 +14,7 @@ import { SettingsView } from "@/components/views/SettingsView";
 import { SecureFileWorkspace } from "@/components/files/SecureFileWorkspace";
 import { UnifiedTestCase } from "@/lib/attack-lab/types";
 import { WorkspaceFile } from "@/types/file-workspace";
+import { ReplyDraft } from "@/types/agent";
 
 export default function HomePage() {
   const [activeKey, setActiveKey] = useState<NavItemKey>("overview");
@@ -21,6 +22,7 @@ export default function HomePage() {
   const [selectedDemoCase, setSelectedDemoCase] = useState<UnifiedTestCase | undefined>(undefined);
   const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>(undefined);
   const [selectedWorkspaceFileForAgent, setSelectedWorkspaceFileForAgent] = useState<WorkspaceFile | null>(null);
+  const [selectedQueuedDraft, setSelectedQueuedDraft] = useState<{ file: WorkspaceFile; draft: ReplyDraft } | null>(null);
 
   const handleNavigateToAttackLab = (category?: string) => {
     if (category) setSelectedLabCategory(category);
@@ -39,6 +41,12 @@ export default function HomePage() {
 
   const handleFileToAgent = (file: WorkspaceFile) => {
     setSelectedWorkspaceFileForAgent(file);
+    setActiveKey("ai-agent");
+  };
+
+  const handleQueueReplyAction = (file: WorkspaceFile, draft: ReplyDraft) => {
+    setSelectedWorkspaceFileForAgent(file);
+    setSelectedQueuedDraft({ file, draft });
     setActiveKey("ai-agent");
   };
 
@@ -66,6 +74,7 @@ export default function HomePage() {
               onNavigateToActivity={() => setActiveKey("security-activity")}
               onNavigateToTrace={handleNavigateToTrace}
               onNavigateToFiles={() => setActiveKey("files")}
+              onQueueReplyAction={handleQueueReplyAction}
             />
           )}
 
@@ -73,14 +82,19 @@ export default function HomePage() {
             <LiveAttackDemo
               initialCase={selectedDemoCase}
               initialWorkspaceFile={selectedWorkspaceFileForAgent}
+              initialQueuedDraft={selectedQueuedDraft}
               onClearWorkspaceFile={() => setSelectedWorkspaceFileForAgent(null)}
+              onClearQueuedDraft={() => setSelectedQueuedDraft(null)}
             />
           )}
 
           {(activeKey === "files" ||
             activeKey === "secure-files" ||
             activeKey === "files-workspace") && (
-            <SecureFileWorkspace onSendToAgent={handleFileToAgent} />
+            <SecureFileWorkspace
+              onSendToAgent={handleFileToAgent}
+              onQueueReplyAction={handleQueueReplyAction}
+            />
           )}
 
           {(activeKey === "threat-center" ||

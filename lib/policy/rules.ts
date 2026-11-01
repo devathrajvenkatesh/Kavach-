@@ -86,6 +86,7 @@ export const BUILTIN_POLICY_RULES: SecurityPolicyRule[] = [
         const userRequestedSend =
           (ctx.trustContext.trustLevel > 1) &&
           (userGoal.includes("send email") ||
+            userGoal.includes("send_email") ||
             userGoal.includes("email to") ||
             userGoal.includes("forward to") ||
             userGoal.includes("compose"));

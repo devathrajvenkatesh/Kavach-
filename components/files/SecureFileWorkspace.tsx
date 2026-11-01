@@ -27,8 +27,10 @@ import {
   Bot,
   ArrowRight,
   Clock,
+  Send,
 } from "lucide-react";
 import { WorkspaceFile, FileSecurityStatus, WorkspaceFolder } from "@/types/file-workspace";
+import { ReplyDraft } from "@/types/agent";
 import { DEMO_PRESET_FILES } from "@/lib/files/demo-presets";
 import { formatReadingTime } from "@/lib/intelligence/triage";
 import {
@@ -39,9 +41,10 @@ import {
 
 interface SecureFileWorkspaceProps {
   onSendToAgent?: (file: WorkspaceFile) => void;
+  onQueueReplyAction?: (file: WorkspaceFile, draft: ReplyDraft) => void;
 }
 
-export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps) {
+export function SecureFileWorkspace({ onSendToAgent, onQueueReplyAction }: SecureFileWorkspaceProps) {
   // State
   const [files, setFiles] = useState<WorkspaceFile[]>([]);
   const [activeFolder, setActiveFolder] = useState<WorkspaceFolder>("All");
@@ -1155,6 +1158,43 @@ export function SecureFileWorkspace({ onSendToAgent }: SecureFileWorkspaceProps)
                           <strong>Zero-Authority Guarantee:</strong> Drafts are never sent automatically. User must explicitly approve transmission in the Agent chat.
                         </span>
                       </div>
+
+                      {/* Queue as Proposed Action Button */}
+                      {(() => {
+                        const isFileThreat =
+                          selectedFile.securityStatus === "BLOCKED" ||
+                          selectedFile.securityStatus === "THREAT_DETECTED" ||
+                          selectedFile.isQuarantined;
+
+                        if (isFileThreat) {
+                          return (
+                            <div className="p-2.5 bg-[#FEF2F2] rounded-lg border border-[#FCA5A5] text-[#991B1B] text-[11px] font-semibold flex items-center gap-2">
+                              <Lock className="w-4 h-4 text-[#DC2626] shrink-0" />
+                              <span>Action Blocked: Quarantined adversarial document cannot propose actions.</span>
+                            </div>
+                          );
+                        }
+
+                        return (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (onQueueReplyAction && selectedFile.replyDraft) {
+                                onQueueReplyAction(selectedFile, selectedFile.replyDraft);
+                                setSelectedFile(null);
+                              } else if (onSendToAgent) {
+                                onSendToAgent(selectedFile);
+                                setSelectedFile(null);
+                              }
+                            }}
+                            className="w-full py-2.5 px-3 rounded-xl bg-[#052326] hover:bg-[#0A2E33] active:scale-[0.98] text-white font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-xs"
+                          >
+                            <Send className="w-3.5 h-3.5 text-[#C9A86A]" />
+                            <span>Propose Reply Action (Queue to Agent Gate)</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        );
+                      })()}
                     </div>
                   )}
 

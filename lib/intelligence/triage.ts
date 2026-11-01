@@ -13,7 +13,7 @@
  * or dictates draft reply recipients/secrets.
  */
 
-import { UrgencyTriage, ReplyDraft } from "@/types/agent";
+import { UrgencyTriage, ReplyDraft, ProposedAction } from "@/types/agent";
 
 export function calculateReadingTimeSeconds(text: string): number {
   if (!text || text.trim() === "") return 15;
@@ -219,3 +219,31 @@ export function generateAutoDraftReply(params: {
   // If no identifiable response is needed or possible, return undefined
   return undefined;
 }
+
+/**
+ * Transforms an Auto-Drafted Reply into a formal ProposedAction requiring human confirmation.
+ * ARCHITECTURAL INVARIANT:
+ * Creating a ProposedAction NEVER executes the action.
+ * Sending can NEVER occur directly from the draft UI.
+ * Blocked / Quarantined items remain strictly BLOCKED regardless of urgency.
+ */
+export function draftToProposedAction(
+  draft: ReplyDraft,
+  options?: { isThreatOrQuarantined?: boolean }
+): ProposedAction {
+  const isBlocked = Boolean(options?.isThreatOrQuarantined);
+  return {
+    actionType: "send_email",
+    target: draft.recipient,
+    subject: draft.subject,
+    summary: `Send reply email to ${draft.recipient}: "${draft.subject}"`,
+    parameters: {
+      to: draft.recipient,
+      subject: draft.subject,
+      body: draft.body,
+    },
+    requiresApproval: true,
+    status: isBlocked ? "BLOCKED" : "REQUIRE_CONFIRMATION",
+  };
+}
+
