@@ -23,6 +23,12 @@ yarn-error.log*
 # Testing & Coverage
 /coverage
 
+# Kavach local persistence
+.kavach-data/
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+
 # TypeScript
 *.tsbuildinfo
 

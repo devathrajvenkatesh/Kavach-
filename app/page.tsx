@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sidebar, NavItemKey } from "@/components/layout/Sidebar";
 import { TopBar } from "@/components/layout/TopBar";
 import { CommandCenter } from "@/components/dashboard/CommandCenter";
@@ -15,45 +15,124 @@ import { SecureFileWorkspace } from "@/components/files/SecureFileWorkspace";
 import { UnifiedTestCase } from "@/lib/attack-lab/types";
 import { WorkspaceFile } from "@/types/file-workspace";
 import { ReplyDraft } from "@/types/agent";
+import LoginPage from "@/app/login/page";
+import { ShieldCheck } from "lucide-react";
 
 export default function HomePage() {
-  const [activeKey, setActiveKey] = useState<NavItemKey>("overview");
+  const [activeKey, setActiveKey] = useState<NavItemKey>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab") as NavItemKey | null;
+      if (tab) return tab;
+    }
+    return "overview";
+  });
+
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [selectedLabCategory, setSelectedLabCategory] = useState<string>("ALL");
   const [selectedDemoCase, setSelectedDemoCase] = useState<UnifiedTestCase | undefined>(undefined);
   const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>(undefined);
   const [selectedWorkspaceFileForAgent, setSelectedWorkspaceFileForAgent] = useState<WorkspaceFile | null>(null);
   const [selectedQueuedDraft, setSelectedQueuedDraft] = useState<{ file: WorkspaceFile; draft: ReplyDraft } | null>(null);
 
+  // Authenticate session on mount
+  useEffect(() => {
+    let isMounted = true;
+    async function checkAuth() {
+      try {
+        const res = await fetch("/api/auth/session");
+        if (res.ok) {
+          const data = await res.json();
+          if (isMounted) {
+            setIsAuthenticated(Boolean(data.authenticated));
+          }
+        } else {
+          if (isMounted) setIsAuthenticated(false);
+        }
+      } catch {
+        if (isMounted) setIsAuthenticated(false);
+      }
+    }
+    checkAuth();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Sync tab with URL query changes
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const handlePopState = () => {
+        const params = new URLSearchParams(window.location.search);
+        const tab = params.get("tab") as NavItemKey | null;
+        if (tab) setActiveKey(tab);
+      };
+      window.addEventListener("popstate", handlePopState);
+      return () => window.removeEventListener("popstate", handlePopState);
+    }
+  }, []);
+
+  const handleSelectKey = (key: NavItemKey) => {
+    setActiveKey(key);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("tab", key);
+      window.history.pushState({}, "", url.toString());
+    }
+  };
+
   const handleNavigateToAttackLab = (category?: string) => {
     if (category) setSelectedLabCategory(category);
-    setActiveKey("attack-lab");
+    handleSelectKey("attack-lab");
   };
 
   const handleNavigateToLiveDemo = (testCase?: UnifiedTestCase) => {
     if (testCase) setSelectedDemoCase(testCase);
-    setActiveKey("ai-agent");
+    handleSelectKey("ai-agent");
   };
 
   const handleNavigateToTrace = (correlationId?: string) => {
     if (correlationId) setSelectedTraceId(correlationId);
-    setActiveKey("security-trace");
+    handleSelectKey("security-trace");
   };
 
   const handleFileToAgent = (file: WorkspaceFile) => {
     setSelectedWorkspaceFileForAgent(file);
-    setActiveKey("ai-agent");
+    handleSelectKey("ai-agent");
   };
 
   const handleQueueReplyAction = (file: WorkspaceFile, draft: ReplyDraft) => {
     setSelectedWorkspaceFileForAgent(file);
     setSelectedQueuedDraft({ file, draft });
-    setActiveKey("ai-agent");
+    handleSelectKey("ai-agent");
   };
 
+  // Loading Session State
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-[#FAF7EE] flex items-center justify-center text-[#052326]">
+        <div className="flex flex-col items-center space-y-3">
+          <div className="p-3 bg-[#052326] text-[#C9A86A] rounded-2xl shadow-xs animate-pulse">
+            <ShieldCheck className="w-8 h-8" />
+          </div>
+          <div className="text-xs font-mono font-bold uppercase tracking-wider text-[#678882]">
+            Verifying Security Session...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Unauthenticated State: Show Login Landing Page
+  if (isAuthenticated === false) {
+    return <LoginPage />;
+  }
+
+  // Authenticated State: Full Kavach Console
   return (
     <div className="min-h-screen flex bg-[#F7F4EA] text-[#052326] font-sans antialiased selection:bg-[#C9A86A]/30">
       {/* 1. Left Sidebar (Streamlined Enterprise Navigation) */}
-      <Sidebar activeKey={activeKey} onSelectKey={setActiveKey} />
+      <Sidebar activeKey={activeKey} onSelectKey={handleSelectKey} />
 
       {/* 2. Main Application Canvas */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto min-h-screen">
@@ -61,7 +140,8 @@ export default function HomePage() {
         <TopBar
           activeKey={activeKey}
           recentAlertCount={3}
-          onOpenNotifications={() => setActiveKey("security-activity")}
+          onOpenNotifications={() => handleSelectKey("security-activity")}
+          onNavigateToTab={handleSelectKey}
         />
 
         {/* Content Area */}
@@ -70,10 +150,10 @@ export default function HomePage() {
             <CommandCenter
               onNavigateToAttackLab={() => handleNavigateToAttackLab()}
               onNavigateToLiveDemo={() => handleNavigateToLiveDemo()}
-              onNavigateToThreats={() => setActiveKey("threat-center")}
-              onNavigateToActivity={() => setActiveKey("security-activity")}
+              onNavigateToThreats={() => handleSelectKey("threat-center")}
+              onNavigateToActivity={() => handleSelectKey("security-activity")}
               onNavigateToTrace={handleNavigateToTrace}
-              onNavigateToFiles={() => setActiveKey("files")}
+              onNavigateToFiles={() => handleSelectKey("files")}
               onQueueReplyAction={handleQueueReplyAction}
             />
           )}
@@ -119,7 +199,7 @@ export default function HomePage() {
           {activeKey === "security-trace" && (
             <SecurityTraceView
               initialCorrelationId={selectedTraceId}
-              onClose={() => setActiveKey("audit")}
+              onClose={() => handleSelectKey("audit")}
             />
           )}
 

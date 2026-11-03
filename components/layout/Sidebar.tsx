@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   LayoutDashboard,
   Bot,
@@ -104,6 +105,23 @@ const PRIMARY_NAV_ITEMS: NavItem[] = [
 ];
 
 export function Sidebar({ activeKey, onSelectKey }: SidebarProps) {
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch("/api/auth/session")
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data.authenticated && data.user?.role === "ADMIN") {
+          setIsAdmin(true);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Normalize alias keys to primary keys for active styling
   const isItemActive = (item: NavItem): boolean => {
     if (activeKey === item.key) return true;
@@ -171,6 +189,27 @@ export function Sidebar({ activeKey, onSelectKey }: SidebarProps) {
               );
             })}
           </div>
+
+          {/* Conditional Admin Navigation Section */}
+          {isAdmin && (
+            <div className="pt-3 border-t border-[#E4DEC8]/80 mt-2">
+              <div className="px-3 pb-1.5 text-[10px] font-bold tracking-[0.16em] uppercase text-[#C9A86A]">
+                Governance
+              </div>
+              <Link
+                href="/admin"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold bg-[#FAF5EB] hover:bg-[#052326] hover:text-[#C9A86A] text-[#052326] transition-all border border-[#C9A86A]/30 group"
+              >
+                <div className="flex items-center space-x-2.5">
+                  <ShieldAlert className="w-3.5 h-3.5 text-[#C9A86A]" />
+                  <span>Admin Console</span>
+                </div>
+                <span className="text-[9px] font-mono bg-[#052326] text-[#C9A86A] px-1.5 py-0.5 rounded">
+                  ADMIN
+                </span>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 

@@ -26,11 +26,13 @@ import {
   Pause,
   SkipForward,
   Flame,
+  RefreshCw,
 } from "lucide-react";
 import { defaultAuditLogger, AuditEvent } from "@/lib/audit/logger";
 import { WorkspaceFile } from "@/types/file-workspace";
 import { ReplyDraft } from "@/types/agent";
 import { formatReadingTime } from "@/lib/intelligence/triage";
+import { GmailMessageSummary } from "@/lib/gmail/types";
 import {
   getStoredWorkspaceFiles,
   subscribeToWorkspaceFiles,
@@ -90,6 +92,15 @@ export function CommandCenter({
     secretAccessAttempts?: number;
     confirmationBypassAttempts?: number;
   } | null>(null);
+
+  // Operating Mode: "LIVE" | "DEMO"
+  const [operatingMode, setOperatingMode] = useState<"LIVE" | "DEMO">("LIVE");
+  const [gmailConnected, setGmailConnected] = useState<boolean>(false);
+  const [msConnected, setMsConnected] = useState<boolean>(false);
+  const [gmailAddress, setGmailAddress] = useState<string | null>(null);
+  const [_msAddress, setMsAddress] = useState<string | null>(null);
+  const [gmailMessages, setGmailMessages] = useState<GmailMessageSummary[]>([]);
+  const [isSyncingGmail, setIsSyncingGmail] = useState<boolean>(false);
 
   // Derived metrics live-mapped across tabs
   const quarantinedCount = radarFiles.filter(
@@ -168,6 +179,55 @@ export function CommandCenter({
     fetchLiveTelemetry();
     const interval = setInterval(fetchLiveTelemetry, 1500);
 
+    const fetchMail = async () => {
+      try {
+        const res = await fetch("/api/mail/accounts");
+        if (res.ok) {
+          const d = await res.json();
+          const gConn = Boolean(d.accounts?.GMAIL?.connected);
+          const mConn = Boolean(d.accounts?.MICROSOFT?.connected);
+          setGmailConnected(gConn);
+          setMsConnected(mConn);
+          setGmailAddress(d.accounts?.GMAIL?.emailAddress || null);
+          setMsAddress(d.accounts?.MICROSOFT?.emailAddress || null);
+
+          if (gConn || mConn) {
+            setIsSyncingGmail(true);
+            const mRes = await fetch("/api/mail/messages?limit=8");
+            if (mRes.ok) {
+              const mData = await mRes.json();
+              if (mData.messages && Array.isArray(mData.messages)) {
+                setGmailMessages(mData.messages);
+              }
+            }
+            setIsSyncingGmail(false);
+          }
+        } else {
+          const gRes = await fetch("/api/gmail/status");
+          if (gRes.ok) {
+            const d = await gRes.json();
+            setGmailConnected(Boolean(d.connected));
+            setGmailAddress(d.gmailAddress || null);
+            if (d.connected) {
+              setIsSyncingGmail(true);
+              const mRes = await fetch("/api/gmail/messages?limit=8");
+              if (mRes.ok) {
+                const mData = await mRes.json();
+                if (mData.messages && Array.isArray(mData.messages)) {
+                  setGmailMessages(mData.messages);
+                }
+              }
+              setIsSyncingGmail(false);
+            }
+          }
+        }
+      } catch {
+        setIsSyncingGmail(false);
+      }
+    };
+
+    fetchMail();
+
     // Initial load from authoritative workspace store
     setRadarFiles(getStoredWorkspaceFiles());
 
@@ -209,8 +269,128 @@ export function CommandCenter({
     };
   }, []);
 
+  const handleSyncGmail = async () => {
+    setIsSyncingGmail(true);
+    try {
+      const res = await fetch("/api/mail/messages?limit=8");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.messages && Array.isArray(data.messages)) {
+          setGmailMessages(data.messages);
+        }
+      }
+    } catch {
+      // Ignored
+    } finally {
+      setIsSyncingGmail(false);
+    }
+  };
+
+  const handleAnalyzeGmail = async (messageId: string) => {
+    try {
+      let res = await fetch("/api/mail/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId }),
+      });
+      if (!res.ok) {
+        res = await fetch("/api/gmail/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messageId }),
+        });
+      }
+      if (res.ok) {
+        const data = await res.json();
+        if (data.file) {
+          if (data.file.replyDraft && onQueueReplyAction) {
+            onQueueReplyAction(data.file, data.file.replyDraft);
+          } else if (onNavigateToFiles) {
+            onNavigateToFiles();
+          } else {
+            onNavigateToLiveDemo();
+          }
+        }
+      }
+    } catch {
+      // Ignored
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      {/* 0. MODE SELECTION BAR: LIVE MAILBOX vs DEMO SECURITY SIMULATION */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-[#FCFAF5] rounded-2xl border border-[#E4DEC8] shadow-xs">
+        <div className="flex items-center space-x-3">
+          <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#678882]">
+            OPERATING MODE:
+          </span>
+          <div className="inline-flex rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] p-1 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => setOperatingMode("LIVE")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                operatingMode === "LIVE"
+                  ? "bg-[#052326] text-white shadow-xs"
+                  : "text-[#678882] hover:text-[#052326]"
+              }`}
+            >
+              <Mail className="w-3.5 h-3.5 text-[#C9A86A]" />
+              <span>LIVE MAILBOX</span>
+              {gmailConnected && <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setOperatingMode("DEMO")}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
+                operatingMode === "DEMO"
+                  ? "bg-[#052326] text-white shadow-xs"
+                  : "text-[#678882] hover:text-[#052326]"
+              }`}
+            >
+              <FlaskConical className="w-3.5 h-3.5 text-[#C9A86A]" />
+              <span>DEMO SIMULATION</span>
+            </button>
+          </div>
+        </div>
+
+        {operatingMode === "LIVE" ? (
+          gmailConnected ? (
+            <div className="flex items-center space-x-3 text-xs">
+              <span className="text-[#678882] font-mono text-[11px]">
+                Mailbox: <span className="font-bold text-[#052326]">{gmailAddress}</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleSyncGmail}
+                disabled={isSyncingGmail}
+                className="px-2.5 py-1 rounded-lg bg-white border border-[#E4DEC8] text-[#052326] hover:bg-[#FAF5EB] font-semibold text-[11px] flex items-center space-x-1 shadow-2xs transition-colors"
+              >
+                <RefreshCw className={`w-3 h-3 text-[#678882] ${isSyncingGmail ? "animate-spin" : ""}`} />
+                <span>Sync Mailbox</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <span className="text-[11px] text-[#C2410C] font-semibold">Gmail not connected</span>
+              <button
+                type="button"
+                onClick={() => (window.location.href = "/api/gmail/connect")}
+                className="px-3 py-1 rounded-xl bg-[#052326] text-white hover:bg-[#0A2E33] font-semibold text-xs flex items-center space-x-1.5 shadow-xs transition-colors"
+              >
+                <Mail className="w-3.5 h-3.5 text-[#C9A86A]" />
+                <span>Connect Gmail</span>
+              </button>
+            </div>
+          )
+        ) : (
+          <div className="text-[11px] font-mono text-[#678882] flex items-center space-x-1.5">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            <span>Deterministic 138-Vector Adversarial Attack Lab Active</span>
+          </div>
+        )}
+      </div>
+
       {/* 1. TOP HEADER / WELCOME / STATUS */}
       <section className="bg-[#FCFAF5] rounded-2xl border border-[#E4DEC8] p-6 sm:p-7 shadow-xs relative overflow-hidden">
         {/* Subtle decorative glow */}
@@ -660,7 +840,133 @@ export function CommandCenter({
         {/* Priority Grid - Displayed ONLY when expanded */}
         {isRadarExpanded && (
           <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
-            {radarFiles.length === 0 ? (
+            {operatingMode === "LIVE" && !gmailConnected && !msConnected ? (
+              <div className="bg-white rounded-xl border border-dashed border-[#E4DEC8] p-8 text-center">
+                <div className="flex items-center justify-center gap-3 mb-2 opacity-80">
+                  <Mail className="w-8 h-8 text-[#EA4335]" />
+                  <div className="w-7 h-7 flex items-center justify-center text-[#0078D4]">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M1 1h10v10H1V1zm12 0h10v10H13V1zM1 13h10v10H1V13zm12 0h10v10H13V13z" />
+                    </svg>
+                  </div>
+                </div>
+                <h4 className="text-sm font-bold text-[#052326]">Live Mailbox Defense Disconnected</h4>
+                <p className="text-xs text-[#678882] max-w-md mx-auto mt-1 mb-4">
+                  Connect your Google Gmail or Microsoft 365 account via official read-only OAuth to inspect incoming emails with zero-authority data isolation.
+                </p>
+                <div className="flex items-center justify-center gap-3 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => (window.location.href = "/api/gmail/connect")}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#052326] text-white text-xs font-semibold hover:bg-[#0A2E33] transition-all shadow-xs"
+                  >
+                    <Mail className="w-3.5 h-3.5 text-[#C9A86A]" />
+                    <span>Connect Gmail</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => (window.location.href = "/api/mail/microsoft/connect")}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0078D4] text-white text-xs font-semibold hover:bg-[#0060A9] transition-all shadow-xs"
+                  >
+                    <span>Connect Microsoft 365</span>
+                  </button>
+                </div>
+              </div>
+            ) : operatingMode === "LIVE" && gmailMessages.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {gmailMessages.map((msg) => {
+                  const isCritical = msg.urgency.level === "CRITICAL";
+                  const isInfo = msg.urgency.level === "INFORMATIONAL";
+                  const isThreatBlocked =
+                    msg.isQuarantined ||
+                    msg.securityStatus === "THREAT_DETECTED" ||
+                    msg.securityStatus === "BLOCKED";
+
+                  const isMs = (msg as { provider?: string }).provider === "MICROSOFT";
+
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`p-4 rounded-xl border transition-all flex flex-col justify-between ${
+                        isThreatBlocked
+                          ? "bg-[#FEF5F2] border-[#F8C8BA]"
+                          : isCritical
+                          ? "bg-[#FFFBF5] border-[#F2DEB8]"
+                          : "bg-white border-[#E4DEC8]"
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span
+                            className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
+                              isCritical
+                                ? "bg-[#FDF0ED] text-[#C2410C]"
+                                : isInfo
+                                ? "bg-[#F3F4F6] text-[#4B5563]"
+                                : "bg-[#FEF9EE] text-[#B45309]"
+                            }`}
+                          >
+                            {isCritical ? "🔥 CRITICAL" : isInfo ? "💤 INFORMATIONAL" : "⚡ NORMAL"}
+                          </span>
+
+                          {isThreatBlocked ? (
+                            <span className="text-[9px] font-mono font-bold text-[#DC2626] bg-[#FEF2F2] border border-[#FCA5A5] px-1.5 py-0.5 rounded flex items-center gap-1">
+                              <Lock className="w-3 h-3" />
+                              QUARANTINED
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-mono text-[#678882] flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {formatReadingTime(msg.estimatedReadingTimeSeconds)}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 mb-1">
+                          {isMs ? (
+                            <span className="text-[9px] font-mono font-bold text-[#0078D4] bg-[#F0F8FF] border border-[#B8D9F7] px-1.5 py-0.5 rounded shrink-0">
+                              M365
+                            </span>
+                          ) : (
+                            <Mail className="w-4 h-4 text-[#EA4335] shrink-0" />
+                          )}
+                          <span className="text-xs font-bold text-[#052326] truncate" title={msg.subject}>
+                            {msg.subject}
+                          </span>
+                        </div>
+
+                        <div className="text-[10px] font-mono text-[#678882] truncate mb-1.5">
+                          From: {msg.sender}
+                        </div>
+
+                        {isThreatBlocked && (
+                          <div className="text-[10px] font-mono font-bold text-[#DC2626] bg-white/80 p-1 rounded border border-[#FCA5A5]/60 mb-1.5">
+                            ⛔ THREAT QUARANTINED — ZERO AUTHORITY
+                          </div>
+                        )}
+
+                        <p className="text-[11px] text-[#678882] line-clamp-2 leading-relaxed">
+                          {msg.urgency.reason}
+                        </p>
+                      </div>
+
+                      <div className="mt-3 pt-2.5 border-t border-[#E4DEC8]/60 flex items-center justify-between text-[10px]">
+                        <span className="text-[9px] font-mono text-[#2E595A] bg-[#FAF7EE] px-1.5 py-0.5 rounded border border-[#E4DEC8]">
+                          Trust: Untrusted (L1)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleAnalyzeGmail(msg.id)}
+                          className="px-2.5 py-1 rounded-lg bg-[#052326] text-white hover:bg-[#0A2E33] font-semibold text-[10px] flex items-center space-x-1 shadow-2xs transition-colors"
+                        >
+                          <span>Analyze with Kavach</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : radarFiles.length === 0 ? (
               <div className="bg-white rounded-xl border border-dashed border-[#E4DEC8] p-8 text-center">
                 <Radio className="w-8 h-8 text-[#C9A86A] mx-auto mb-2 opacity-60" />
                 <h4 className="text-sm font-bold text-[#052326]">Executive Radar Standing By</h4>

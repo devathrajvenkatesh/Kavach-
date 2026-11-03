@@ -9,6 +9,7 @@ import { sanitizeText } from "@/lib/security/sanitizer";
 import { evaluateUrgency, generateAutoDraftReply } from "@/lib/intelligence/triage";
 import { parseUploadedFile } from "@/lib/files/file-parser";
 import { defaultThreatAnalyzer } from "@/lib/security/threat-analyzer";
+import { getServerSession } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -60,6 +61,8 @@ export async function POST(req: NextRequest) {
         ? body.conversationId.trim()
         : `session_${Date.now()}`;
 
+    const { user } = await getServerSession(req);
+
     // Handle Human-in-the-Loop Action Approval / Rejection
     if (body.actionApproval) {
       const { approved, toolName, parameters, correlationId } = body.actionApproval;
@@ -102,6 +105,8 @@ export async function POST(req: NextRequest) {
             decision: "BLOCK",
             finalOutcome: "POLICY_BLOCKED",
             reason: `Action blocked by policy despite approval: ${policyDecision.reason}`,
+            userId: user?.id,
+            userEmail: user?.email,
           });
 
           return NextResponse.json({
@@ -136,6 +141,8 @@ export async function POST(req: NextRequest) {
           decision: "APPROVE",
           finalOutcome: "HUMAN_APPROVED_EXECUTED",
           reason: `Human operator confirmed and authorized action execution for "${toolName}".`,
+          userId: user?.id,
+          userEmail: user?.email,
         });
 
         return NextResponse.json({
@@ -162,6 +169,8 @@ export async function POST(req: NextRequest) {
           decision: "BLOCK",
           finalOutcome: "USER_REJECTED",
           reason: `Human operator rejected the proposed action "${toolName}". Tool execution cancelled.`,
+          userId: user?.id,
+          userEmail: user?.email,
         });
 
         return NextResponse.json({

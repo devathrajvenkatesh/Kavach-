@@ -34,6 +34,10 @@ export interface AuditEvent {
   correlationId: string;
   source: string;
   eventType: SecurityEventType;
+  userId?: string;
+  userEmail?: string;
+  messageId?: string;
+  mode?: "LIVE" | "DEMO";
   userIntent?: string;
   sourceType?: string;
   sourceTrustLevel?: number | string;
@@ -155,6 +159,10 @@ export class AuditLogger {
       correlationId,
       source: event.source || "security_pipeline",
       eventType: event.eventType || "POLICY_DECISION",
+      userId: event.userId,
+      userEmail: event.userEmail,
+      messageId: event.messageId,
+      mode: event.mode || (event.userId ? "LIVE" : "DEMO"),
       userIntent: event.userIntent,
       sourceType: event.sourceType,
       sourceTrustLevel: event.sourceTrustLevel,
@@ -196,6 +204,22 @@ export class AuditLogger {
 
   getRecentEvents(limit: number = 50): AuditEvent[] {
     return this.events.slice(0, limit);
+  }
+
+  getEventsByUserId(userId: string, limit: number = 50): AuditEvent[] {
+    return this.events.filter((e) => e.userId === userId).slice(0, limit);
+  }
+
+  getStatsForUser(userId: string) {
+    const userEvents = this.events.filter((e) => e.userId === userId);
+    const total = userEvents.length;
+    const blocked = userEvents.filter((e) => e.decision === "BLOCK" || e.policyDecision === "BLOCK").length;
+    const approved = userEvents.filter((e) => e.decision === "APPROVE" || e.policyDecision === "APPROVE").length;
+    const confirmation = userEvents.filter(
+      (e) => e.decision === "REQUIRE_CONFIRMATION" || e.policyDecision === "REQUIRE_CONFIRMATION"
+    ).length;
+    const threats = userEvents.filter((e) => e.threatDetected).length;
+    return { total, blocked, approved, confirmation, threats };
   }
 
   getEventsByCorrelationId(correlationId: string): AuditEvent[] {

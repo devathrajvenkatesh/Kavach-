@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { defaultAuditLogger } from "@/lib/audit/logger";
 import { sanitizeObject, sanitizeText } from "@/lib/security/sanitizer";
+import { getServerSession } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,9 +13,12 @@ export const dynamic = "force-dynamic";
  * telemetry metrics, and traces directly from the authoritative server-side AuditLogger.
  *
  * Guarantees zero credential or secret leakage.
+ * Scoped to authenticated user in multi-user mode.
  */
 export async function GET(req: NextRequest) {
   try {
+    const { user } = await getServerSession(req);
+
     const url = new URL(req.url);
     const format = url.searchParams.get("format");
     const correlationId = url.searchParams.get("correlationId");
@@ -34,18 +38,27 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Filter by Correlation ID if requested
+    // Filter events with multi-user isolation
     let events = correlationId
       ? defaultAuditLogger.getEventsByCorrelationId(correlationId)
+      : user && user.role !== "ADMIN"
+      ? defaultAuditLogger.getEventsByUserId(user.id, limit)
       : defaultAuditLogger.getRecentEvents(limit);
+
+    // If a normal user requested a specific correlationId, ensure multi-user isolation
+    if (user && user.role !== "ADMIN" && correlationId) {
+      events = events.filter((e) => !e.userId || e.userId === user.id);
+    }
 
     // Apply strict sanitization pass
     events = sanitizeObject(events) as typeof events;
     const metrics = sanitizeObject({
-      totalEvents: defaultAuditLogger.getRecentEvents(1000).length,
+      totalEvents: events.length,
       ...defaultAuditLogger.getTelemetryMetrics(),
     });
-    const stats = defaultAuditLogger.getStats();
+    const stats = user && user.role !== "ADMIN"
+      ? defaultAuditLogger.getStatsForUser(user.id)
+      : defaultAuditLogger.getStats();
 
     return NextResponse.json(
       {
