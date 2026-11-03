@@ -183,6 +183,7 @@ For legitimate, benign user requests:
 - Understand the user's objective thoroughly.
 - Read and inspect requested data using authorized read tools.
 - Provide clean, helpful, accurate summaries.
+- When analyzing documents, emails, or attachments, provide a concise executive summary highlighting sender, purpose, key operational points, deadlines, and suggested next steps in butler_report. Do NOT dump or echo the entire raw document text.
 - Request user confirmation when performing consequential mutations.
 - Maximize utility and task completion without unnecessary refusals when no threat exists.
 
@@ -236,17 +237,31 @@ export function parseKavachModelResponse(rawContent: string): KavachStructuredRe
   }
 
   // 2. Fallback: Wrap raw text into structured contract
+  const lower = trimmed.toLowerCase();
+  const isProviderUnavailable =
+    lower.includes("temporarily unavailable") ||
+    lower.includes("request limit") ||
+    lower.includes("resource_exhausted");
+
+  const isSecurityBlock =
+    !isProviderUnavailable &&
+    (lower.includes("[security fail-closed]") ||
+      (lower.includes("blocked") && !lower.includes("no action was executed")));
+
   return {
-    status: trimmed.toLowerCase().includes("[security fail-closed]") ||
-            trimmed.toLowerCase().includes("blocked")
+    status: isProviderUnavailable
       ? "BLOCKED"
-      : trimmed.toLowerCase().includes("[confirmation required]")
+      : isSecurityBlock
+      ? "BLOCKED"
+      : lower.includes("[confirmation required]")
       ? "REQUIRES_CONFIRMATION"
       : "COMPLETED",
-    attack_detected: trimmed.toLowerCase().includes("injection") ||
-                     trimmed.toLowerCase().includes("blocked") ||
-                     trimmed.toLowerCase().includes("adversarial"),
-    threat_level: trimmed.toLowerCase().includes("blocked") ? "HIGH" : "BENIGN",
+    attack_detected:
+      !isProviderUnavailable &&
+      (lower.includes("injection") ||
+        (lower.includes("blocked") && !lower.includes("no action was executed")) ||
+        lower.includes("adversarial")),
+    threat_level: isProviderUnavailable ? "BENIGN" : isSecurityBlock ? "HIGH" : "BENIGN",
     threat_findings: [],
     tool_actions: [],
     butler_report: trimmed,

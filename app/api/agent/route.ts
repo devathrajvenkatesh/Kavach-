@@ -335,33 +335,41 @@ export async function POST(req: NextRequest) {
     const agentResponse = await orchestrator.processRequest(agentRequest);
 
     // 5. Evaluate Security Outcomes
+    const isProviderFailure =
+      agentResponse.status === "ERROR" && !agentResponse.structuredOutput?.attack_detected;
+
     const isSecurityViolation =
-      agentResponse.status === "BLOCKED" ||
-      agentResponse.structuredOutput?.attack_detected ||
-      agentResponse.structuredOutput?.status === "BLOCKED" ||
-      agentResponse.lastPolicyDecision?.decision === "BLOCK";
+      !isProviderFailure &&
+      (agentResponse.status === "BLOCKED" ||
+        Boolean(agentResponse.structuredOutput?.attack_detected) ||
+        agentResponse.lastPolicyDecision?.decision === "BLOCK");
 
     const isBlocked = isAttachedFileThreat || isSecurityViolation;
 
     const isConfirmationRequired =
       !isBlocked &&
+      !isProviderFailure &&
       (agentResponse.status === "REQUIRES_CONFIRMATION" ||
         agentResponse.lastPolicyDecision?.decision === "REQUIRE_CONFIRMATION");
 
     const attackDetected = Boolean(
-      isBlocked ||
-        agentResponse.threatAssessment?.isThreatDetected ||
-        agentResponse.structuredOutput?.attack_detected
+      isAttachedFileThreat ||
+        (isSecurityViolation && agentResponse.structuredOutput?.attack_detected) ||
+        agentResponse.threatAssessment?.isThreatDetected
     );
 
     let decision: "APPROVE" | "BLOCK" | "REQUIRE_CONFIRMATION" = "APPROVE";
-    if (isBlocked) {
+    if (isBlocked || isProviderFailure) {
       decision = "BLOCK";
     } else if (isConfirmationRequired) {
       decision = "REQUIRE_CONFIRMATION";
     }
 
-    const responseStatus = isBlocked
+    const responseStatus = isAttachedFileThreat
+      ? "BLOCKED"
+      : isProviderFailure
+      ? "ERROR"
+      : isBlocked
       ? "BLOCKED"
       : isConfirmationRequired
       ? "REQUIRES_CONFIRMATION"
@@ -384,16 +392,18 @@ export async function POST(req: NextRequest) {
         }
       : undefined;
 
+    const isQuarantined = isAttachedFileThreat || (isSecurityViolation && attackDetected);
+
     const urgency = attachedFileTriage || evaluateUrgency(
       userPrompt,
-      isBlocked,
+      isQuarantined,
       agentResponse.threatAssessment?.overallThreatLevel
     );
 
-    const replyDraft = attachedFileDraft || generateAutoDraftReply({
+    const replyDraft = attachedFileDraft || (isProviderFailure ? undefined : generateAutoDraftReply({
       extractedText: userPrompt,
-      isThreat: isBlocked,
-    });
+      isThreat: isQuarantined,
+    }));
 
     // 6. Return Safe JSON Response (never exposing internal secrets or keys)
     return NextResponse.json({
@@ -403,14 +413,18 @@ export async function POST(req: NextRequest) {
       security: {
         attackDetected,
         decision,
-        threatCategory: isAttachedFileThreat ? attachedFileThreatCategory : agentResponse.threatAssessment?.signals?.[0]?.category,
+        threatCategory: isAttachedFileThreat
+          ? attachedFileThreatCategory
+          : attackDetected
+          ? agentResponse.threatAssessment?.signals?.[0]?.category
+          : undefined,
         correlationId: agentResponse.correlationId,
       },
       urgency,
       proposedAction,
       replyDraft,
-      isQuarantined: isBlocked,
-      quarantineReason: isBlocked
+      isQuarantined,
+      quarantineReason: isQuarantined
         ? isAttachedFileThreat
           ? `Hostile prompt injection directive detected in attached file "${body.attachment?.fileName}". Quarantined.`
           : "Hostile directive or policy violation detected. Execution quarantined."
@@ -423,7 +437,7 @@ export async function POST(req: NextRequest) {
       toolExecutions: agentResponse.toolExecutions?.map((t) => ({
         toolName: t.toolName,
         status: t.status,
-      })),
+      })) || [],
       provider: agentResponse.providerInfo,
     });
 

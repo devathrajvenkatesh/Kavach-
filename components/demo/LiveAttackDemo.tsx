@@ -27,6 +27,8 @@ import { defaultPipelineRunner } from "@/lib/attack-lab/pipeline-runner";
 import { UrgencyTriage, ProposedAction, ReplyDraft } from "@/types/agent";
 import { formatReadingTime, draftToProposedAction } from "@/lib/intelligence/triage";
 import { WorkspaceFile, FileSecurityStatus } from "@/types/file-workspace";
+import { parseProviderError } from "@/lib/agent/provider/error-handler";
+import { broadcastTelemetryUpdate } from "@/lib/telemetry/telemetry-sync";
 
 export type DemoStage =
   | "IDLE"
@@ -465,6 +467,11 @@ export function LiveAttackDemo({
           const parsed = JSON.parse(jsonMatch[0]);
           if (parsed && typeof parsed.butler_report === "string" && parsed.butler_report.trim() !== "") {
             displayContent = parsed.butler_report.trim();
+          } else if (parsed && (parsed.error || parsed.message || parsed.code)) {
+            const parsedErr = parseProviderError(parsed);
+            displayContent = parsedErr
+              ? parsedErr.userMessage
+              : "AI processing is temporarily unavailable from the model provider. No action was executed.";
           }
         }
       } catch {
@@ -487,6 +494,10 @@ export function LiveAttackDemo({
       };
 
       setChatMessages((prev) => [...prev, assistantMessage]);
+      broadcastTelemetryUpdate({
+        source: "ai-agent",
+        type: data.security?.attackDetected ? "ATTACK_INTERCEPTED" : "AGENT_PROCESSED",
+      });
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "Failed to communicate with /api/agent";
       setErrorBanner(errorMsg);
@@ -561,6 +572,10 @@ export function LiveAttackDemo({
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
+      broadcastTelemetryUpdate({
+        source: "human-gate",
+        type: approved ? "ACTION_APPROVED" : "ACTION_REJECTED",
+      });
     } catch (err: unknown) {
       console.error("Action approval error:", err);
       setErrorBanner("Failed to submit action approval decision.");

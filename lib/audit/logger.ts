@@ -24,7 +24,9 @@ export type SecurityEventType =
   | "ATTACK_EVALUATION"
   | "SECURITY_BLOCKED"
   | "POLICY_DECISION"
-  | "AGENT_REQUEST";
+  | "AGENT_REQUEST"
+  | "PROVIDER_ERROR"
+  | "SYSTEM_ERROR";
 
 export interface AuditEvent {
   id: string;

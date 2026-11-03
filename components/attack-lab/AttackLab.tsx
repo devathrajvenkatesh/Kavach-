@@ -22,6 +22,7 @@ import {
   getTestCasesByCategory,
 } from "@/lib/attack-lab/dataset-loader";
 import { defaultPipelineRunner } from "@/lib/attack-lab/pipeline-runner";
+import { broadcastTelemetryUpdate } from "@/lib/telemetry/telemetry-sync";
 
 interface AttackLabProps {
   initialCategory?: string;
@@ -80,6 +81,7 @@ export function AttackLab({ initialCategory = "ALL", onLaunchDemoWithCase }: Att
     } finally {
       setIsRunning(false);
       setRunProgress({ completed: casesToRun.length, total: casesToRun.length, currentId: "DONE" });
+      broadcastTelemetryUpdate({ source: "attack-lab", type: "CATEGORY_RUN_COMPLETE" });
     }
   };
 
@@ -97,6 +99,7 @@ export function AttackLab({ initialCategory = "ALL", onLaunchDemoWithCase }: Att
     } finally {
       setIsRunning(false);
       setRunProgress({ completed: ALL_TEST_CASES.length, total: ALL_TEST_CASES.length, currentId: "DONE" });
+      broadcastTelemetryUpdate({ source: "attack-lab", type: "ALL_RUN_COMPLETE" });
     }
   };
 
@@ -108,6 +111,7 @@ export function AttackLab({ initialCategory = "ALL", onLaunchDemoWithCase }: Att
   const handleClearResults = () => {
     setResults({});
     setRunProgress({ completed: 0, total: 0, currentId: "" });
+    broadcastTelemetryUpdate({ source: "attack-lab", type: "RESULTS_CLEARED" });
   };
 
   // Filter test cases

@@ -5,3 +5,4 @@ export * from "./anthropic";
 export * from "./openai";
 export * from "./groq";
 export * from "./factory";
+export * from "./error-handler";

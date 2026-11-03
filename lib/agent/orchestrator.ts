@@ -23,6 +23,8 @@ import { defaultPromptBuilder, PromptBuilder } from "./prompt-builder";
 import { createLLMProvider } from "./provider/factory";
 import { AuditLogger, defaultAuditLogger } from "@/lib/audit/logger";
 import { parseKavachModelResponse } from "@/lib/llm/prompts/kavach-system";
+import { parseProviderError } from "./provider/error-handler";
+import { sanitizeText } from "@/lib/security/sanitizer";
 
 function mapThreatLevelToStructured(
   level?: string
@@ -454,7 +456,9 @@ export class AgentOrchestrator {
       structured.threat_findings = lastThreatAssessment.signals.map((s) => s.indicator);
     }
     structured.tool_actions = toolExecutions.map((t) => t.toolName);
-    structured.butler_report = finalContent;
+    if (!structured.butler_report || structured.butler_report.trim() === "") {
+      structured.butler_report = finalContent;
+    }
 
     return {
       id: responseId,
@@ -462,7 +466,7 @@ export class AgentOrchestrator {
       sessionId: request.sessionId,
       correlationId,
       status: responseStatus,
-      content: finalContent,
+      content: structured.butler_report || finalContent,
       steps,
       toolExecutions,
       threatAssessment: lastThreatAssessment,
@@ -476,15 +480,62 @@ export class AgentOrchestrator {
     };
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);
+    const providerError = parseProviderError(err);
+
+    if (providerError) {
+      this.auditLogger.logEvent({
+        correlationId,
+        eventType: "PROVIDER_ERROR",
+        source: request.trustContext?.source || "orchestrator",
+        sourceType: "provider_unavailable",
+        decision: "BLOCK",
+        policyDecision: "BLOCK",
+        finalOutcome: "PROVIDER_UNAVAILABLE",
+        threatDetected: false,
+        reason: providerError.userMessage,
+      });
+
+      return {
+        id: responseId,
+        requestId: request.id,
+        sessionId: request.sessionId,
+        correlationId,
+        status: "ERROR",
+        content: providerError.userMessage,
+        steps,
+        toolExecutions: [],
+        structuredOutput: {
+          status: "BLOCKED",
+          attack_detected: false,
+          threat_level: "BENIGN",
+          threat_findings: [],
+          tool_actions: [],
+          butler_report: providerError.userMessage,
+        },
+        providerInfo: {
+          providerName: this.provider.providerName,
+          modelIdentifier: this.provider.modelIdentifier,
+        },
+        createdAt: new Date().toISOString(),
+      };
+    }
+
+    // Non-provider unexpected internal error: Fail-closed without exposing raw internals or fabricating threats
+    const safeSanitizedMsg = sanitizeText(errorMsg);
+    const safeErrorMsg = safeSanitizedMsg.startsWith("{")
+      ? "An internal processing error occurred. Operation safely halted with zero tool executions."
+      : `An internal processing error occurred: ${safeSanitizedMsg}`;
+
     this.auditLogger.logEvent({
       correlationId,
-      eventType: "SECURITY_BLOCKED",
+      eventType: "SYSTEM_ERROR",
       source: request.trustContext?.source || "orchestrator",
       sourceType: "orchestrator_failure",
       decision: "BLOCK",
       policyDecision: "BLOCK",
       finalOutcome: "ORCHESTRATOR_FAIL_CLOSED",
-      reason: `Orchestrator fail-closed: ${errorMsg}`,
+      threatDetected: false,
+      reason: safeErrorMsg,
     });
 
     return {
@@ -493,16 +544,16 @@ export class AgentOrchestrator {
       sessionId: request.sessionId,
       correlationId,
       status: "ERROR",
-      content: `[SECURITY FAIL-CLOSED] An internal processing exception occurred. Operation halted to prevent privilege escalation: ${errorMsg}`,
+      content: `[SECURITY FAIL-CLOSED] ${safeErrorMsg}`,
       steps,
-      toolExecutions,
+      toolExecutions: [],
       structuredOutput: {
         status: "BLOCKED",
-        attack_detected: true,
-        threat_level: "CRITICAL",
-        threat_findings: ["ORCHESTRATOR_EXCEPTION"],
+        attack_detected: false,
+        threat_level: "BENIGN",
+        threat_findings: [],
         tool_actions: [],
-        butler_report: `[SECURITY FAIL-CLOSED] An internal processing exception occurred: ${errorMsg}`,
+        butler_report: `[SECURITY FAIL-CLOSED] ${safeErrorMsg}`,
       },
       providerInfo: {
         providerName: this.provider.providerName,

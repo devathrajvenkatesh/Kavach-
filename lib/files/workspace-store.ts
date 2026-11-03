@@ -10,6 +10,7 @@
  */
 
 import { WorkspaceFile } from "@/types/file-workspace";
+import { broadcastTelemetryUpdate } from "@/lib/telemetry/telemetry-sync";
 
 export const WORKSPACE_FILES_STORAGE_KEY = "kavach_secure_workspace_files_v1";
 const WORKSPACE_FILES_UPDATE_EVENT = "kavach_workspace_files_updated";
@@ -44,6 +45,7 @@ export function saveStoredWorkspaceFiles(files: WorkspaceFile[]): void {
     window.dispatchEvent(
       new CustomEvent(WORKSPACE_FILES_UPDATE_EVENT, { detail: files })
     );
+    broadcastTelemetryUpdate({ source: "workspace-store", type: "FILES_UPDATED" });
   } catch (err) {
     console.warn("[WorkspaceStore] Failed to persist workspace files:", err);
   }
