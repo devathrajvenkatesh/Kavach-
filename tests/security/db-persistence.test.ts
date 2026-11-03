@@ -48,7 +48,7 @@ describe("Production Database Persistence & Multi-Tenant Isolation", () => {
       try {
         // Temporarily clear test markers to test detection logic
         delete process.env.npm_lifecycle_event;
-        process.env.NODE_ENV = "production";
+        Object.assign(process.env, { NODE_ENV: "production" });
         process.env.VERCEL = "1";
 
         assert.equal(isProductionEnvironment(), true);
@@ -61,7 +61,7 @@ describe("Production Database Persistence & Multi-Tenant Isolation", () => {
         process.env.KAVACH_FORCE_DB_TYPE = "postgres";
         assert.equal(isProductionEnvironment(), true);
       } finally {
-        process.env.NODE_ENV = origNodeEnv;
+        Object.assign(process.env, { NODE_ENV: origNodeEnv });
         process.env.npm_lifecycle_event = origLifecycle;
       }
     });
@@ -301,8 +301,8 @@ describe("Production Database Persistence & Multi-Tenant Isolation", () => {
           subject: "Classified Project Alpha Scope",
           bodyText: "Confidential roadmap for Project Alpha.",
           date: new Date().toISOString(),
-          securityStatus: "SECURE",
-          urgencyLevel: "HIGH",
+          securityStatus: "SAFE",
+          urgencyLevel: "CRITICAL",
           isQuarantined: false,
           analyzedAt: new Date().toISOString(),
         },
@@ -317,8 +317,8 @@ describe("Production Database Persistence & Multi-Tenant Isolation", () => {
           subject: "Q4 Hardware Delivery",
           bodyText: "Tracking numbers for Q4 shipment.",
           date: new Date().toISOString(),
-          securityStatus: "SECURE",
-          urgencyLevel: "MEDIUM",
+          securityStatus: "SAFE",
+          urgencyLevel: "NORMAL",
           isQuarantined: false,
           analyzedAt: new Date().toISOString(),
         },
