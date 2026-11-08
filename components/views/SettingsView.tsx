@@ -29,7 +29,7 @@ export function SettingsView() {
   const [activeTab, setActiveTab] = useState<"general" | "accounts" | "policies" | "diagnostics">(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("tab") === "accounts" || params.get("connected")) {
+      if (params.get("tab") === "accounts" || params.get("connected") || params.get("error")) {
         return "accounts";
       }
     }
@@ -94,6 +94,43 @@ export function SettingsView() {
 
   useEffect(() => {
     fetchAccountsStatus();
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const connected = params.get("connected");
+      const error = params.get("error");
+
+      if (connected || error) {
+        setActiveTab("accounts");
+      }
+
+      if (connected === "gmail") {
+        setNotice("Gmail account connected successfully.");
+      } else if (connected === "microsoft") {
+        setNotice("Microsoft account connected successfully.");
+      } else if (error) {
+        switch (error) {
+          case "GMAIL_CONNECTION_FAILED":
+            setNotice("Gmail connection failed: Authorization code exchange failed or Gmail API is not enabled.");
+            break;
+          case "NO_REFRESH_TOKEN":
+            setNotice("Gmail connection failed: Google did not return a refresh token. Please re-authorize with consent.");
+            break;
+          case "INVALID_OAUTH_STATE":
+            setNotice("Gmail connection failed: Invalid or expired OAuth state.");
+            break;
+          case "MISSING_CODE":
+            setNotice("Gmail connection failed: Missing authorization code.");
+            break;
+          case "AUTH_REQUIRED":
+            setNotice("Authentication required before connecting Gmail.");
+            break;
+          default:
+            setNotice(`Gmail connection notice: ${error.replace(/_/g, " ")}`);
+            break;
+        }
+      }
+    }
   }, []);
 
   const handleConnectGmail = () => {

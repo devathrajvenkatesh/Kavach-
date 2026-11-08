@@ -88,6 +88,37 @@ export async function GET(req: NextRequest) {
     res.cookies.delete("kavach_gmail_oauth_state");
     return res;
   } catch {
+    // If authorization code was already exchanged/consumed by a concurrent or duplicate request,
+    // safely verify if a valid CONNECTED Gmail session already exists for this user.
+    try {
+      const db = getDb();
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const existing = await db.getGmailConnectionByUserId(user.id);
+        if (existing?.status === "CONNECTED" && existing.encryptedRefreshToken) {
+          defaultAuditLogger.logEvent({
+            correlationId: `gmail_callback_duplicate_${Date.now()}`,
+            source: "gmail_callback",
+            sourceType: "oauth_consent",
+            eventType: "POLICY_EVALUATED",
+            policyDecision: "APPROVE",
+            finalOutcome: "GMAIL_CONNECTED",
+            reason: `Reconciled concurrent/duplicate callback for connected user: ${user.email}`,
+            userId: user.id,
+            userEmail: user.email,
+          });
+
+          const res = NextResponse.redirect(new URL("/settings?connected=gmail", origin));
+          res.cookies.delete("kavach_gmail_oauth_state");
+          return res;
+        }
+        if (attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+      }
+    } catch {
+      // Database check failed; fall through to error redirect
+    }
+
     return NextResponse.redirect(new URL("/settings?error=GMAIL_CONNECTION_FAILED", origin));
   }
 }
