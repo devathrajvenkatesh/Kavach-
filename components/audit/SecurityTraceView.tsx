@@ -83,7 +83,7 @@ export function SecurityTraceView({ initialCorrelationId, onClose }: SecurityTra
             No Security Traces Recorded Yet
           </h3>
           <p className="text-xs text-[#678882] max-w-md mx-auto">
-            Execute attacks or tests in the Attack Lab or launch the Live Demo to record real-time security chains.
+            Analyze emails, inspect files, or run tests in the Attack Lab to record real-time security chains.
           </p>
         </div>
       ) : (

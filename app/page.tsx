@@ -12,7 +12,6 @@ import { AuditTrail } from "@/components/audit/AuditTrail";
 import { SecurityTraceView } from "@/components/audit/SecurityTraceView";
 import { SettingsView } from "@/components/views/SettingsView";
 import { SecureFileWorkspace } from "@/components/files/SecureFileWorkspace";
-import { UnifiedTestCase } from "@/lib/attack-lab/types";
 import { WorkspaceFile } from "@/types/file-workspace";
 import { ReplyDraft } from "@/types/agent";
 import LoginPage from "@/app/login/page";
@@ -30,7 +29,6 @@ export default function HomePage() {
 
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [selectedLabCategory, setSelectedLabCategory] = useState<string>("ALL");
-  const [selectedDemoCase, setSelectedDemoCase] = useState<UnifiedTestCase | undefined>(undefined);
   const [selectedTraceId, setSelectedTraceId] = useState<string | undefined>(undefined);
   const [selectedWorkspaceFileForAgent, setSelectedWorkspaceFileForAgent] = useState<WorkspaceFile | null>(null);
   const [selectedQueuedDraft, setSelectedQueuedDraft] = useState<{ file: WorkspaceFile; draft: ReplyDraft } | null>(null);
@@ -86,8 +84,7 @@ export default function HomePage() {
     handleSelectKey("attack-lab");
   };
 
-  const handleNavigateToLiveDemo = (testCase?: UnifiedTestCase) => {
-    if (testCase) setSelectedDemoCase(testCase);
+  const handleNavigateToAgent = () => {
     handleSelectKey("ai-agent");
   };
 
@@ -149,7 +146,7 @@ export default function HomePage() {
           {activeKey === "overview" && (
             <CommandCenter
               onNavigateToAttackLab={() => handleNavigateToAttackLab()}
-              onNavigateToLiveDemo={() => handleNavigateToLiveDemo()}
+              onNavigateToAgent={handleNavigateToAgent}
               onNavigateToThreats={() => handleSelectKey("threat-center")}
               onNavigateToActivity={() => handleSelectKey("security-activity")}
               onNavigateToTrace={handleNavigateToTrace}
@@ -160,7 +157,6 @@ export default function HomePage() {
 
           {(activeKey === "ai-agent" || activeKey === "live-agent") && (
             <LiveAttackDemo
-              initialCase={selectedDemoCase}
               initialWorkspaceFile={selectedWorkspaceFileForAgent}
               initialQueuedDraft={selectedQueuedDraft}
               onClearWorkspaceFile={() => setSelectedWorkspaceFileForAgent(null)}
@@ -188,7 +184,6 @@ export default function HomePage() {
           {activeKey === "attack-lab" && (
             <AttackLab
               initialCategory={selectedLabCategory}
-              onLaunchDemoWithCase={(tc) => handleNavigateToLiveDemo(tc)}
             />
           )}
 

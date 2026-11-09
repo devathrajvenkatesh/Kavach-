@@ -31,7 +31,6 @@ import {
 } from "lucide-react";
 import { WorkspaceFile, FileSecurityStatus, WorkspaceFolder } from "@/types/file-workspace";
 import { ReplyDraft } from "@/types/agent";
-import { DEMO_PRESET_FILES } from "@/lib/files/demo-presets";
 import { formatReadingTime } from "@/lib/intelligence/triage";
 import {
   getStoredWorkspaceFiles,
@@ -162,40 +161,6 @@ export function SecureFileWorkspace({ onSendToAgent, onQueueReplyAction }: Secur
     }
   };
 
-  // Quick Demo Loader: Populates with pre-packaged realistic demo files
-  const handleLoadDemoSamples = async () => {
-    setIsProcessingUpload(true);
-    setUploadError(null);
-    const demoResults: WorkspaceFile[] = [];
-
-    try {
-      for (let i = 0; i < DEMO_PRESET_FILES.length; i++) {
-        const preset = DEMO_PRESET_FILES[i];
-        setUploadProgressText(`Scanning ${preset.name} (${i + 1}/${DEMO_PRESET_FILES.length})...`);
-
-        const inspected = await inspectAndAddFile({
-          fileName: preset.name,
-          bufferOrText: preset.content,
-          mimeType: preset.mimeType,
-          folder: preset.folder,
-        });
-
-        if (inspected) {
-          demoResults.push(inspected);
-        }
-      }
-
-      saveFiles(demoResults);
-      if (demoResults.length > 0) {
-        setSelectedFile(demoResults[0]);
-      }
-    } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Failed to load demo files.");
-    } finally {
-      setIsProcessingUpload(false);
-      setUploadProgressText("");
-    }
-  };
 
   // Clear workspace
   const handleClearAll = () => {
@@ -357,15 +322,6 @@ export function SecureFileWorkspace({ onSendToAgent, onQueueReplyAction }: Secur
             Upload Files
           </button>
 
-          <button
-            onClick={handleLoadDemoSamples}
-            disabled={isProcessingUpload}
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-[#FAF7EE] text-[#052326] hover:bg-[#EFEAD9] active:scale-[0.98] transition-all rounded-xl font-medium text-sm border border-[#E4DEC8]"
-            title="Populates with realistic test files for quick demo"
-          >
-            <Sparkles className="w-4 h-4 text-[#C9A86A]" />
-            Demo Samples
-          </button>
 
           {files.length > 0 && (
             <button
@@ -501,14 +457,7 @@ export function SecureFileWorkspace({ onSendToAgent, onQueueReplyAction }: Secur
               <Upload className="w-4 h-4 text-[#C9A86A]" />
               Upload Files
             </button>
-            <button
-              onClick={handleLoadDemoSamples}
-              disabled={isProcessingUpload}
-              className="flex items-center gap-2 px-4 py-2.5 bg-[#FAF7EE] text-[#052326] hover:bg-[#EFEAD9] transition-all rounded-xl font-medium text-sm border border-[#E4DEC8]"
-            >
-              <Sparkles className="w-4 h-4 text-[#C9A86A]" />
-              Load Demo Samples
-            </button>
+
           </div>
         </div>
       ) : viewMode === "list" ? (

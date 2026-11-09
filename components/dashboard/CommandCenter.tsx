@@ -22,10 +22,6 @@ import {
   AlertTriangle,
   Activity,
   BarChart3,
-  Play,
-  Pause,
-  SkipForward,
-  Flame,
   RefreshCw,
 } from "lucide-react";
 import { defaultAuditLogger, AuditEvent } from "@/lib/audit/logger";
@@ -38,17 +34,10 @@ import {
   subscribeToWorkspaceFiles,
 } from "@/lib/files/workspace-store";
 import { subscribeToTelemetry } from "@/lib/telemetry/telemetry-sync";
-import { LiveNotificationPanel } from "./LiveNotificationPanel";
-import {
-  defaultDefenseSimulator,
-  SimulatedSecurityEvent,
-  SimulatorMetrics,
-  SimulatorSpeed,
-} from "@/lib/simulation/defense-simulator";
 
 interface CommandCenterProps {
   onNavigateToAttackLab: (category?: string) => void;
-  onNavigateToLiveDemo: () => void;
+  onNavigateToAgent?: () => void;
   onNavigateToThreats?: () => void;
   onNavigateToActivity?: () => void;
   onNavigateToTrace?: (correlationId?: string) => void;
@@ -58,31 +47,20 @@ interface CommandCenterProps {
 
 export function CommandCenter({
   onNavigateToAttackLab,
-  onNavigateToLiveDemo,
+  onNavigateToAgent,
   onNavigateToThreats,
   onNavigateToActivity,
   onNavigateToTrace: _onNavigateToTrace,
   onNavigateToFiles,
   onQueueReplyAction,
 }: CommandCenterProps) {
+  const navigateToAgent = onNavigateToAgent || (() => {});
   const [recentEvents, setRecentEvents] = useState<AuditEvent[]>([]);
   const [lastActivityTime, setLastActivityTime] = useState<string>("Just now");
   const [radarFiles, setRadarFiles] = useState<WorkspaceFile[]>([]);
   const [isRadarExpanded, setIsRadarExpanded] = useState<boolean>(false);
   const [selectedQuickFileId, setSelectedQuickFileId] = useState<string>("");
   const [liveSyncPulse, setLiveSyncPulse] = useState<boolean>(false);
-  const [simMetrics, setSimMetrics] = useState<SimulatorMetrics>(
-    defaultDefenseSimulator.getMetrics()
-  );
-  const [latestSimEvent, setLatestSimEvent] = useState<SimulatedSecurityEvent | null>(
-    defaultDefenseSimulator.getRecentHistory(1)[0] || null
-  );
-  const [isSimLooping, setIsSimLooping] = useState<boolean>(
-    defaultDefenseSimulator.getIsRunning()
-  );
-  const [simSpeed, setSimSpeed] = useState<SimulatorSpeed>(
-    defaultDefenseSimulator.getSpeed()
-  );
   const [liveMetrics, setLiveMetrics] = useState<{
     totalEvents: number;
     attacksBlocked: number;
@@ -93,8 +71,6 @@ export function CommandCenter({
     confirmationBypassAttempts?: number;
   } | null>(null);
 
-  // Operating Mode: "LIVE" | "DEMO"
-  const [operatingMode, setOperatingMode] = useState<"LIVE" | "DEMO">("LIVE");
   const [gmailConnected, setGmailConnected] = useState<boolean>(false);
   const [msConnected, setMsConnected] = useState<boolean>(false);
   const [gmailAddress, setGmailAddress] = useState<string | null>(null);
@@ -134,18 +110,11 @@ export function CommandCenter({
     ).length ||
     16;
 
-  // Real-time combined metrics across live server audit and continuous simulation loop
-  const totalAttacksBlocked =
-    (liveMetrics ? liveMetrics.attacksBlocked : 0) + simMetrics.attacksBlocked;
-
-  const totalLiveSecurityEvents =
-    (liveMetrics ? liveMetrics.totalEvents : recentEvents.length) + simMetrics.totalSimulated;
-
-  const totalConsequentialActions =
-    totalActionsScreened + simMetrics.confirmationGatesEnforced;
-
-  const totalSecretProbesThwarted =
-    secretProbesCount + simMetrics.secretProbesBlocked;
+  // Real-time metrics from live server audit
+  const totalAttacksBlocked = liveMetrics ? liveMetrics.attacksBlocked : 0;
+  const totalLiveSecurityEvents = liveMetrics ? liveMetrics.totalEvents : recentEvents.length;
+  const totalConsequentialActions = totalActionsScreened;
+  const totalSecretProbesThwarted = secretProbesCount;
 
   useEffect(() => {
     const fetchLiveTelemetry = async () => {
@@ -246,26 +215,10 @@ export function CommandCenter({
       setTimeout(() => setLiveSyncPulse(false), 800);
     });
 
-    // Subscribe to defense simulation loop for real-time demonstration sync
-    const unsubscribeSimulator = defaultDefenseSimulator.subscribe((evt, metrics) => {
-      setSimMetrics(metrics);
-      setLatestSimEvent(evt);
-      setLiveSyncPulse(true);
-      setTimeout(() => setLiveSyncPulse(false), 800);
-      setLastActivityTime(
-        new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        })
-      );
-    });
-
     return () => {
       clearInterval(interval);
       unsubscribeFiles();
       unsubscribeTelemetry();
-      unsubscribeSimulator();
     };
   }, []);
 
@@ -308,7 +261,7 @@ export function CommandCenter({
           } else if (onNavigateToFiles) {
             onNavigateToFiles();
           } else {
-            onNavigateToLiveDemo();
+            navigateToAgent();
           }
         }
       }
@@ -319,60 +272,50 @@ export function CommandCenter({
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
-      {/* 0. MODE SELECTION BAR: LIVE MAILBOX vs DEMO SECURITY SIMULATION */}
+      {/* 0. PRODUCTION SECURITY STATUS STRIP: CONNECTED SOURCES & ACTIVE PERIMETER */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 bg-[#FCFAF5] rounded-2xl border border-[#E4DEC8] shadow-xs">
         <div className="flex items-center space-x-3">
-          <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-[#678882]">
-            OPERATING MODE:
-          </span>
-          <div className="inline-flex rounded-xl bg-[#FAF7EE] border border-[#E4DEC8] p-1 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setOperatingMode("LIVE")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                operatingMode === "LIVE"
-                  ? "bg-[#052326] text-white shadow-xs"
-                  : "text-[#678882] hover:text-[#052326]"
-              }`}
-            >
-              <Mail className="w-3.5 h-3.5 text-[#C9A86A]" />
-              <span>LIVE MAILBOX</span>
-              {gmailConnected && <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />}
-            </button>
-            <button
-              type="button"
-              onClick={() => setOperatingMode("DEMO")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 ${
-                operatingMode === "DEMO"
-                  ? "bg-[#052326] text-white shadow-xs"
-                  : "text-[#678882] hover:text-[#052326]"
-              }`}
-            >
-              <FlaskConical className="w-3.5 h-3.5 text-[#C9A86A]" />
-              <span>DEMO SIMULATION</span>
-            </button>
+          <div className="inline-flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-[#052326] text-white shadow-xs text-xs font-bold font-mono">
+            <Mail className="w-3.5 h-3.5 text-[#C9A86A]" />
+            <span>AUTHORITATIVE SECURITY GATEWAY</span>
+            {(gmailConnected || msConnected) && (
+              <span className="w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse" />
+            )}
+          </div>
+          <div className="hidden md:flex items-center space-x-1.5 text-[11px] font-mono text-[#678882]">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />
+            <span>Air-Gap Active · Authority = NONE</span>
           </div>
         </div>
 
-        {operatingMode === "LIVE" ? (
-          gmailConnected ? (
-            <div className="flex items-center space-x-3 text-xs">
+        <div className="flex items-center space-x-3 text-xs flex-wrap gap-2">
+          {gmailConnected && (
+            <div className="flex items-center space-x-2">
               <span className="text-[#678882] font-mono text-[11px]">
-                Mailbox: <span className="font-bold text-[#052326]">{gmailAddress}</span>
+                Gmail: <span className="font-bold text-[#052326]">{gmailAddress}</span>
               </span>
-              <button
-                type="button"
-                onClick={handleSyncGmail}
-                disabled={isSyncingGmail}
-                className="px-2.5 py-1 rounded-lg bg-white border border-[#E4DEC8] text-[#052326] hover:bg-[#FAF5EB] font-semibold text-[11px] flex items-center space-x-1 shadow-2xs transition-colors"
-              >
-                <RefreshCw className={`w-3 h-3 text-[#678882] ${isSyncingGmail ? "animate-spin" : ""}`} />
-                <span>Sync Mailbox</span>
-              </button>
             </div>
+          )}
+          {msConnected && (
+            <div className="flex items-center space-x-2">
+              <span className="text-[#678882] font-mono text-[11px]">
+                M365: <span className="font-bold text-[#052326]">{_msAddress || "Connected"}</span>
+              </span>
+            </div>
+          )}
+          {(gmailConnected || msConnected) ? (
+            <button
+              type="button"
+              onClick={handleSyncGmail}
+              disabled={isSyncingGmail}
+              className="px-2.5 py-1 rounded-lg bg-white border border-[#E4DEC8] text-[#052326] hover:bg-[#FAF5EB] font-semibold text-[11px] flex items-center space-x-1 shadow-2xs transition-colors"
+            >
+              <RefreshCw className={`w-3 h-3 text-[#678882] ${isSyncingGmail ? "animate-spin" : ""}`} />
+              <span>Sync Mailbox</span>
+            </button>
           ) : (
             <div className="flex items-center space-x-2">
-              <span className="text-[11px] text-[#C2410C] font-semibold">Gmail not connected</span>
+              <span className="text-[11px] text-[#C2410C] font-semibold">No Mailbox Connected</span>
               <button
                 type="button"
                 onClick={() => (window.location.href = "/api/gmail/connect")}
@@ -381,14 +324,16 @@ export function CommandCenter({
                 <Mail className="w-3.5 h-3.5 text-[#C9A86A]" />
                 <span>Connect Gmail</span>
               </button>
+              <button
+                type="button"
+                onClick={() => (window.location.href = "/api/mail/microsoft/connect")}
+                className="px-3 py-1 rounded-xl bg-[#0078D4] text-white hover:bg-[#0060A9] font-semibold text-xs flex items-center space-x-1.5 shadow-xs transition-colors"
+              >
+                <span>Connect M365</span>
+              </button>
             </div>
-          )
-        ) : (
-          <div className="text-[11px] font-mono text-[#678882] flex items-center space-x-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-            <span>Deterministic 138-Vector Adversarial Attack Lab Active</span>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* 1. TOP HEADER / WELCOME / STATUS */}
@@ -431,7 +376,7 @@ export function CommandCenter({
           {/* Quick Header Actions */}
           <div className="flex items-center gap-2.5 flex-wrap sm:flex-nowrap flex-shrink-0">
             <button
-              onClick={onNavigateToLiveDemo}
+              onClick={navigateToAgent}
               className="px-4 py-2.5 rounded-xl bg-[#052326] hover:bg-[#0A2E33] active:scale-[0.98] text-white text-xs font-semibold tracking-wide flex items-center space-x-2 shadow-xs transition-all"
             >
               <Bot className="w-4 h-4 text-[#C9A86A]" />
@@ -603,7 +548,7 @@ export function CommandCenter({
 
         {/* Card 4: Agent Status (Sandbox Isolation Infographic) */}
         <div
-          onClick={onNavigateToLiveDemo}
+          onClick={navigateToAgent}
           className="bg-[#FCFAF5] rounded-xl border border-[#E4DEC8] p-4 shadow-xs hover:border-[#678882] transition-all cursor-pointer group relative overflow-hidden"
         >
           <div className="flex items-center justify-between text-[#678882] mb-1.5">
@@ -840,7 +785,7 @@ export function CommandCenter({
         {/* Priority Grid - Displayed ONLY when expanded */}
         {isRadarExpanded && (
           <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
-            {operatingMode === "LIVE" && !gmailConnected && !msConnected ? (
+            {!gmailConnected && !msConnected && gmailMessages.length === 0 && radarFiles.length === 0 ? (
               <div className="bg-white rounded-xl border border-dashed border-[#E4DEC8] p-8 text-center">
                 <div className="flex items-center justify-center gap-3 mb-2 opacity-80">
                   <Mail className="w-8 h-8 text-[#EA4335]" />
@@ -872,7 +817,7 @@ export function CommandCenter({
                   </button>
                 </div>
               </div>
-            ) : operatingMode === "LIVE" && gmailMessages.length > 0 ? (
+            ) : gmailMessages.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {gmailMessages.map((msg) => {
                   const isCritical = msg.urgency.level === "CRITICAL";
@@ -1069,8 +1014,8 @@ export function CommandCenter({
                               e.stopPropagation();
                               if (onQueueReplyAction) {
                                 onQueueReplyAction(file, file.replyDraft!);
-                              } else if (onNavigateToLiveDemo) {
-                                onNavigateToLiveDemo();
+                              } else {
+                                navigateToAgent();
                               }
                             }}
                             className="font-medium text-[#1E5E4E] hover:text-[#052326] flex items-center gap-1 bg-[#EBF1ED] hover:bg-[#D5E5DC] px-2 py-0.5 rounded transition-colors"
@@ -1103,8 +1048,8 @@ export function CommandCenter({
             liveSyncPulse ? "ring-2 ring-emerald-600/30" : ""
           }`}
         >
-          {/* Top Header with Demonstration Loop & Presentation Controls */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-[#E4DEC8]">
+          {/* Top Header */}
+          <div className="flex items-center justify-between pb-4 border-b border-[#E4DEC8]">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-[#052326] text-[#C9A86A] rounded-xl shadow-xs">
                 <BarChart3 className="w-6 h-6 text-[#C9A86A]" />
@@ -1120,88 +1065,9 @@ export function CommandCenter({
                   </span>
                 </div>
                 <p className="text-xs text-[#678882] mt-0.5">
-                  Live continuous enforcement across deterministic policy rules and threat vectors.
+                  Deterministic policy enforcement and threat vector interception ledger.
                 </p>
               </div>
-            </div>
-
-            {/* Demonstration Loop Controls for Easy Presentation */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <div className="flex items-center gap-1 bg-white border border-[#E4DEC8] rounded-xl p-1 shadow-2xs">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const running = defaultDefenseSimulator.toggleLoop();
-                    setIsSimLooping(running);
-                  }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                    isSimLooping
-                      ? "bg-[#052326] text-[#C9A86A]"
-                      : "bg-[#FAF5EB] text-[#052326] hover:bg-[#EFECE0]"
-                  }`}
-                  title={isSimLooping ? "Pause continuous demonstration loop" : "Start continuous demonstration loop"}
-                >
-                  {isSimLooping ? (
-                    <>
-                      <Pause className="w-3.5 h-3.5 text-[#C9A86A]" />
-                      <span>Pause Stream</span>
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-3.5 h-3.5 text-[#1E5E4E]" />
-                      <span>Resume Stream</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = defaultDefenseSimulator.stepNext();
-                    setLatestSimEvent(next);
-                  }}
-                  className="px-2.5 py-1.5 text-xs text-[#2E595A] hover:text-[#052326] font-medium flex items-center gap-1 hover:bg-[#FAF7EE] rounded-lg transition-colors"
-                  title="Step forward to next scenario"
-                >
-                  <SkipForward className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Next</span>
-                </button>
-              </div>
-
-              {/* Speed Pills */}
-              <div className="hidden sm:flex items-center bg-white border border-[#E4DEC8] rounded-xl p-1 text-[11px] font-mono shadow-2xs">
-                {(["fast", "normal", "slow"] as SimulatorSpeed[]).map((spd) => (
-                  <button
-                    key={spd}
-                    type="button"
-                    onClick={() => {
-                      setSimSpeed(spd);
-                      defaultDefenseSimulator.setSpeed(spd);
-                    }}
-                    className={`px-2 py-1 rounded-lg capitalize transition-colors ${
-                      simSpeed === spd
-                        ? "bg-[#1E5E4E] text-white font-bold"
-                        : "text-[#678882] hover:text-[#052326]"
-                    }`}
-                  >
-                    {spd === "fast" ? "2s" : spd === "normal" ? "4s" : "8s"}
-                  </button>
-                ))}
-              </div>
-
-              {/* Malicious Attack Injection Simulator Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  const attackEvt = defaultDefenseSimulator.triggerManualAttack();
-                  setLatestSimEvent(attackEvt);
-                }}
-                className="px-3 py-1.5 rounded-xl bg-red-950/90 hover:bg-red-900 text-red-200 border border-red-500/40 text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors"
-                title="Simulate an immediate adversarial attack with malicious keywords"
-              >
-                <Flame className="w-3.5 h-3.5 text-red-400" />
-                <span>Simulate Attack</span>
-              </button>
             </div>
           </div>
 
@@ -1251,37 +1117,37 @@ export function CommandCenter({
                   {[
                     {
                       name: "Direct Prompt Injection",
-                      count: `${28 + simMetrics.vectorBreakdown.directInjection} / ${28 + simMetrics.vectorBreakdown.directInjection}`,
+                      count: "28 / 28",
                       pct: "100%",
                       color: "bg-[#2E595A]",
                     },
                     {
                       name: "Indirect Ingestion Injection (Email/PDF)",
-                      count: `${34 + simMetrics.vectorBreakdown.indirectInjection} / ${34 + simMetrics.vectorBreakdown.indirectInjection}`,
+                      count: "34 / 34",
                       pct: "100%",
                       color: "bg-[#1E5E4E]",
                     },
                     {
                       name: "Secret Exfiltration & Canary Theft",
-                      count: `${16 + simMetrics.vectorBreakdown.secretExfiltration} / ${16 + simMetrics.vectorBreakdown.secretExfiltration}`,
+                      count: "16 / 16",
                       pct: "100%",
                       color: "bg-[#C9A86A]",
                     },
                     {
                       name: "Privilege Escalation & Confirmation Bypass",
-                      count: `${16 + simMetrics.vectorBreakdown.privilegeEscalation} / ${16 + simMetrics.vectorBreakdown.privilegeEscalation}`,
+                      count: "16 / 16",
                       pct: "100%",
                       color: "bg-[#2E595A]",
                     },
                     {
                       name: "Goal Hijacking & Task Substitution",
-                      count: `${18 + simMetrics.vectorBreakdown.goalHijacking} / ${18 + simMetrics.vectorBreakdown.goalHijacking}`,
+                      count: "18 / 18",
                       pct: "100%",
                       color: "bg-[#1E5E4E]",
                     },
                     {
                       name: "Roleplay & Fictional Jailbreaks",
-                      count: `${26 + simMetrics.vectorBreakdown.roleplayAttack} / ${26 + simMetrics.vectorBreakdown.roleplayAttack}`,
+                      count: "26 / 26",
                       pct: "100%",
                       color: "bg-[#C9A86A]",
                     },
@@ -1434,7 +1300,9 @@ export function CommandCenter({
                         Evaluation Latency
                       </div>
                       <div className="text-lg font-bold text-[#052326] font-mono mt-0.5">
-                        {latestSimEvent ? `${latestSimEvent.latencyMs}ms` : "1.2ms"}
+                        {recentEvents.find((e) => typeof e.latencyMs === "number" && e.latencyMs > 0)?.latencyMs
+                          ? `${recentEvents.find((e) => typeof e.latencyMs === "number" && e.latencyMs > 0)!.latencyMs!.toFixed(1)}ms`
+                          : "< 2.5ms"}
                       </div>
                     </div>
                     {/* SVG Sparkline */}
@@ -1472,21 +1340,23 @@ export function CommandCenter({
                       </span>
                       <span
                         className={`font-bold px-1.5 py-0.2 rounded text-[9px] ${
-                          (latestSimEvent?.policyDecision || recentEvents[0]?.policyDecision) === "BLOCK"
+                          recentEvents[0]?.policyDecision === "BLOCK"
                             ? "bg-[#FDF0ED] text-[#C2410C]"
-                            : "bg-[#EBF3EF] text-[#1E5E4E]"
+                            : recentEvents[0]?.policyDecision === "APPROVE"
+                            ? "bg-[#EBF3EF] text-[#1E5E4E]"
+                            : "bg-[#FEF9EE] text-[#B45309]"
                         }`}
                       >
-                        {(latestSimEvent?.policyDecision || recentEvents[0]?.policyDecision) || "BLOCK"}
+                        {recentEvents[0]?.policyDecision || "ARMED"}
                       </span>
                     </div>
 
                     <div className="text-xs font-semibold text-[#052326] truncate">
-                      {latestSimEvent?.assetName || recentEvents[0]?.payloadSummary || "URGENT_Wire_Transfer_Routing.eml"}
+                      {recentEvents[0]?.payloadSummary || recentEvents[0]?.source || "Real-Time Mailbox & File Ingestion"}
                     </div>
 
                     <p className="text-[10px] text-[#678882] line-clamp-2 leading-relaxed">
-                      {latestSimEvent?.summary || recentEvents[0]?.reason || "Adversarial prompt injection intercepted under Policy SEC-001."}
+                      {recentEvents[0]?.reason || "Perimeter active. All external content isolated with zero authority."}
                     </p>
                   </div>
                 </div>
@@ -1506,17 +1376,6 @@ export function CommandCenter({
           </div>
         </div>
       </section>
-
-      {/* 4. FLOATING LIVE NOTIFICATION PANEL (BOTTOM-RIGHT) */}
-      <LiveNotificationPanel
-        onEventClick={(evt) => {
-          if (evt.threatCategory && onNavigateToThreats) {
-            onNavigateToThreats();
-          } else if (onNavigateToActivity) {
-            onNavigateToActivity();
-          }
-        }}
-      />
     </div>
   );
 }

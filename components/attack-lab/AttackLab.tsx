@@ -26,10 +26,9 @@ import { broadcastTelemetryUpdate } from "@/lib/telemetry/telemetry-sync";
 
 interface AttackLabProps {
   initialCategory?: string;
-  onLaunchDemoWithCase?: (testCase: UnifiedTestCase) => void;
 }
 
-export function AttackLab({ initialCategory = "ALL", onLaunchDemoWithCase }: AttackLabProps) {
+export function AttackLab({ initialCategory = "ALL" }: AttackLabProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
   const [results, setResults] = useState<Record<string, AttackExecutionResult>>({});
   const [isRunning, setIsRunning] = useState<boolean>(false);
@@ -505,18 +504,7 @@ export function AttackLab({ initialCategory = "ALL", onLaunchDemoWithCase }: Att
               >
                 Dismiss
               </button>
-              {onLaunchDemoWithCase && (
-                <button
-                  onClick={() => {
-                    const tc = inspectCase.testCase;
-                    setInspectCase(null);
-                    onLaunchDemoWithCase(tc);
-                  }}
-                  className="px-3 py-1.5 rounded-lg bg-[#052326] text-white text-xs font-semibold hover:bg-[#2E595A]"
-                >
-                  Launch in Live Simulator
-                </button>
-              )}
+
             </div>
           </div>
         </div>
